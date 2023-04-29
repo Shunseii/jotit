@@ -8,11 +8,11 @@ export const noteRouter = createTRPCRouter({
   }),
 
   create: protectedProcedure
-    .input(z.object({ content: z.string() }))
+    .input(z.object({ content: z.string(), renderId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const { content } = input;
+      const { content, renderId } = input;
       const { userId } = ctx.auth;
 
-      return ctx.prisma.note.create({ data: { user_id: userId, content } });
+      return ctx.prisma.note.create({ data: { userId, content, renderId } });
     }),
 });

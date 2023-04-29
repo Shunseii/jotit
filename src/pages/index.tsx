@@ -6,9 +6,11 @@ import { useEffect, useState } from "react";
 import { CreateNoteModal } from "~/components/CreateNoteModal";
 import { LoadingPage } from "~/components/LoadingSpinner";
 import { api } from "~/utils/api";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 const Home: NextPage = () => {
   const router = useRouter();
+  const [parent] = useAutoAnimate();
   const { isSignedIn, isLoaded } = useUser();
   const [isCreateNoteModalOpen, setIsCreateNoteModalOpen] = useState(false);
 
@@ -35,11 +37,11 @@ const Home: NextPage = () => {
         {!notesData?.length ? (
           <div>No data :/</div>
         ) : (
-          <div className="grid grid-cols-fill-xs gap-3">
+          <div ref={parent} className="grid grid-cols-fill-xs gap-3">
             {notesData.map((note) => (
               <div
-                key={note.id}
-                className="rounded-lg border border-t-8 border-yellow-400 bg-white p-2"
+                key={note.renderId}
+                className="rounded-lg border border-t-8 border-yellow-400 bg-white p-2 dark:border-yellow-200  dark:bg-gray-900 dark:text-white"
               >
                 <div className="line-clamp-6">{note.content}</div>
               </div>
@@ -48,7 +50,8 @@ const Home: NextPage = () => {
         )}
 
         <button
-          className="rounded-md bg-yellow-300 p-2 text-black"
+          type="button"
+          className="mt-2 w-max rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
           onClick={() => {
             setIsCreateNoteModalOpen(true);
           }}

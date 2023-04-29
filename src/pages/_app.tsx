@@ -6,6 +6,7 @@ import "~/styles/globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import Head from "next/head";
 import { ThemeProvider } from "next-themes";
+import { Layout } from "~/components/Layout";
 
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
@@ -17,7 +18,11 @@ const MyApp: AppType = ({ Component, pageProps }) => {
           <link rel="icon" href="/favicon.ico" />
         </Head>
 
-        <Component {...pageProps} />
+        <Layout />
+
+        <div className="ml-0 xl:ml-72">
+          <Component {...pageProps} />
+        </div>
       </ClerkProvider>
     </ThemeProvider>
   );

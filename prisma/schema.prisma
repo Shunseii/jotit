@@ -12,9 +12,10 @@ datasource db {
 }
 
 model Note {
-    id         String   @id @default(cuid())
-    content    String
-    user_id    String
-    created_at DateTime @default(now())
-    updated_at DateTime @updatedAt
+    id        String   @id @default(cuid())
+    renderId  String   @unique
+    content   String   @db.Text
+    userId    String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }

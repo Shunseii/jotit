@@ -30,10 +30,11 @@ export const CreateNoteModal = ({
       const previousNotes = ctx.note.getAll.getData();
 
       const newNote: Note = {
-        user_id: user?.id ?? "",
+        userId: user?.id ?? "",
         content: note.content,
-        created_at: dayjs().toDate(),
-        updated_at: dayjs().toDate(),
+        createdAt: dayjs().toDate(),
+        updatedAt: dayjs().toDate(),
+        renderId: note.renderId,
         id: v4(),
       };
 
@@ -57,7 +58,7 @@ export const CreateNoteModal = ({
   });
 
   const onSubmit: SubmitHandler<CreateNoteFormInputs> = ({ content }) => {
-    createNote({ content });
+    createNote({ content, renderId: v4() });
 
     onClose();
     reset();
