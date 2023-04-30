@@ -20,11 +20,9 @@ const MyApp: AppType = ({ Component, pageProps }) => {
 
         <Layout />
 
-        <div className="ml-0 xl:ml-72">
-          <Component {...pageProps} />
+        <Component {...pageProps} />
 
-          <CustomToaster />
-        </div>
+        <CustomToaster />
       </ClerkProvider>
     </ThemeProvider>
   );

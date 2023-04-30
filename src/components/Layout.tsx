@@ -9,15 +9,8 @@ import {
   SignalIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
-import {
-  Bars3Icon,
-  ChevronRightIcon,
-  ChevronUpDownIcon,
-  MagnifyingGlassIcon,
-  MoonIcon,
-  SunIcon,
-} from "@heroicons/react/20/solid";
-import { type ComponentType, Fragment, type SVGProps, useState } from "react";
+import { Bars3Icon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
+import { Fragment, useState } from "react";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 import Image from "next/image";
 

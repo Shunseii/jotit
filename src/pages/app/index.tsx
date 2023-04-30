@@ -117,7 +117,7 @@ const AppPage: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="m-4 flex flex-col">
+      <main className="m-4 ml-0 flex flex-col xl:ml-[300px]">
         {!notesData?.length ? (
           <div className="mx-auto w-max border border-dashed border-gray-300 bg-white px-32 py-6 text-center dark:border-white/20 dark:bg-gray-900">
             <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-500" />
