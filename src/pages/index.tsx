@@ -7,6 +7,7 @@ import { CreateNoteModal } from "~/components/CreateNoteModal";
 import { LoadingPage } from "~/components/LoadingSpinner";
 import { api } from "~/utils/api";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { DocumentTextIcon, PlusIcon } from "@heroicons/react/24/outline";
 
 const Home: NextPage = () => {
   const router = useRouter();
@@ -16,6 +17,22 @@ const Home: NextPage = () => {
 
   const { data: notesData, isFetching: isFetchingNotes } =
     api.note.getAll.useQuery();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const alphanumericRegex = /^[0-9a-zA-Z-+*]$/;
+
+      if (alphanumericRegex.test(e.key) && !isCreateNoteModalOpen) {
+        setIsCreateNoteModalOpen(true);
+      }
+    };
+
+    document.body.addEventListener("keyup", handleKeyDown);
+
+    return () => {
+      document.body.removeEventListener("keyup", handleKeyDown);
+    };
+  }, [isCreateNoteModalOpen]);
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -35,7 +52,31 @@ const Home: NextPage = () => {
 
       <main className="m-4 flex flex-col">
         {!notesData?.length ? (
-          <div>No data :/</div>
+          <div className="mx-auto w-max border border-dashed border-gray-300 bg-white px-32 py-6 text-center dark:border-white/20 dark:bg-gray-900">
+            <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-500" />
+
+            <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+              No notes
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Get started by jotting down a note.
+            </p>
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCreateNoteModalOpen(true);
+                }}
+                className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
+              >
+                <PlusIcon
+                  className="-ml-0.5 mr-1.5 h-5 w-5"
+                  aria-hidden="true"
+                />
+                New Note
+              </button>
+            </div>
+          </div>
         ) : (
           <div ref={parent} className="grid grid-cols-fill-xs gap-3">
             {notesData.map((note) => (
@@ -51,12 +92,12 @@ const Home: NextPage = () => {
 
         <button
           type="button"
-          className="mt-2 w-max rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
           onClick={() => {
             setIsCreateNoteModalOpen(true);
           }}
+          className="fixed bottom-12 right-12 rounded-full bg-indigo-600 p-2 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
         >
-          Create note
+          <PlusIcon className="h-7 w-7" aria-hidden="true" />
         </button>
 
         <CreateNoteModal

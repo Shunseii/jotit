@@ -7,6 +7,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import Head from "next/head";
 import { ThemeProvider } from "next-themes";
 import { Layout } from "~/components/Layout";
+import { Toaster } from "react-hot-toast";
 
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
@@ -22,6 +23,8 @@ const MyApp: AppType = ({ Component, pageProps }) => {
 
         <div className="ml-0 xl:ml-72">
           <Component {...pageProps} />
+
+          <Toaster />
         </div>
       </ClerkProvider>
     </ThemeProvider>
