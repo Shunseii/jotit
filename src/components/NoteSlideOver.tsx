@@ -2,7 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import { type Note } from "@prisma/client";
 import dayjs from "dayjs";
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { api } from "~/utils/api";
@@ -13,16 +13,56 @@ type CreateNoteFormInputs = {
   content: string;
 };
 
-export const CreateNoteModal = ({
+export const NoteSlideOver = ({
   isOpen,
+  defaultNote,
   onClose,
 }: {
   isOpen: boolean;
+  defaultNote: Note | null;
   onClose: () => void;
 }) => {
   const { user } = useUser();
   const ctx = api.useContext();
-  const { register, handleSubmit, reset } = useForm<CreateNoteFormInputs>();
+  const { register, handleSubmit, reset, setValue } =
+    useForm<CreateNoteFormInputs>({
+      defaultValues: { content: defaultNote?.content ?? "" },
+    });
+
+  useEffect(() => {
+    setValue("content", defaultNote?.content ?? "");
+  }, [defaultNote, setValue]);
+
+  const { mutate: editNote } = api.note.edit.useMutation({
+    onMutate: async (note) => {
+      await ctx.note.getAll.cancel();
+
+      const previousNotes = ctx.note.getAll.getData();
+
+      ctx.note.getAll.setData(undefined, (oldNotes) => {
+        return (
+          oldNotes?.map((oldNote) =>
+            oldNote.id === note.id
+              ? { ...oldNote, content: note.content }
+              : oldNote
+          ) ?? []
+        );
+      });
+
+      return { previousNotes };
+    },
+
+    onError: (err, _newNote, context) => {
+      ctx.note.getAll.setData(undefined, context?.previousNotes ?? []);
+
+      toast.error("There was an error creating your note :(");
+      console.error("Error creating note: ", err);
+    },
+
+    onSettled: () => {
+      void ctx.note.getAll.invalidate();
+    },
+  });
 
   const { mutate: createNote } = api.note.create.useMutation({
     onMutate: async (note) => {
@@ -59,7 +99,11 @@ export const CreateNoteModal = ({
   });
 
   const onSubmit: SubmitHandler<CreateNoteFormInputs> = ({ content }) => {
-    createNote({ content, renderId: v4() });
+    if (defaultNote) {
+      editNote({ content, id: defaultNote.id });
+    } else {
+      createNote({ content, renderId: v4() });
+    }
 
     onClose();
     reset();
@@ -94,7 +138,7 @@ export const CreateNoteModal = ({
               >
                 <Dialog.Panel
                   as="form"
-                  className="pointer-events-auto w-screen max-w-md"
+                  className="pointer-events-auto w-screen max-w-xl"
                   onSubmit={handleSubmit(onSubmit)}
                 >
                   <div className="flex h-full flex-col divide-y divide-gray-200 bg-white shadow-xl dark:divide-white/20 dark:bg-gray-900">
@@ -140,7 +184,7 @@ export const CreateNoteModal = ({
                             rows={15}
                             tabIndex={1}
                             id="content"
-                            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-400 sm:text-sm sm:leading-6"
+                            className="block w-full whitespace-pre-line rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-400 sm:text-sm sm:leading-6"
                           />
                         </div>
                       </div>

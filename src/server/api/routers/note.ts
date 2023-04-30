@@ -15,4 +15,20 @@ export const noteRouter = createTRPCRouter({
 
       return ctx.prisma.note.create({ data: { userId, content, renderId } });
     }),
+
+  edit: protectedProcedure
+    .input(z.object({ content: z.string(), id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { content, id } = input;
+
+      return ctx.prisma.note.update({ where: { id }, data: { content } });
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const { id } = input;
+
+      return ctx.prisma.note.delete({ where: { id } });
+    }),
 });

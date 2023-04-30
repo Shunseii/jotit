@@ -1,13 +1,12 @@
 import { type AppType } from "next/app";
-
 import { api } from "~/utils/api";
-
-import "~/styles/globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import Head from "next/head";
 import { ThemeProvider } from "next-themes";
 import { Layout } from "~/components/Layout";
-import { Toaster } from "react-hot-toast";
+import { CustomToaster } from "~/components/CustomToaster";
+
+import "~/styles/globals.css";
 
 const MyApp: AppType = ({ Component, pageProps }) => {
   return (
@@ -24,7 +23,7 @@ const MyApp: AppType = ({ Component, pageProps }) => {
         <div className="ml-0 xl:ml-72">
           <Component {...pageProps} />
 
-          <Toaster />
+          <CustomToaster />
         </div>
       </ClerkProvider>
     </ThemeProvider>
