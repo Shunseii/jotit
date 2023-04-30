@@ -11,7 +11,7 @@ import { DocumentTextIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { type Note } from "@prisma/client";
 import { useSwipe } from "~/hooks/useSwipe";
 import { XMarkIcon } from "@heroicons/react/20/solid";
-import { toast } from "react-hot-toast/headless";
+import { toast } from "react-hot-toast";
 
 const AppPage: NextPage = () => {
   const router = useRouter();
@@ -44,18 +44,16 @@ const AppPage: NextPage = () => {
           oldNotes?.filter((oldNote) => oldNote.id !== note.id) ?? []
       );
 
+      toast("Note deleted");
+
       return { previousNotes };
     },
 
     onError: (err, _newNote, context) => {
       ctx.note.getAll.setData(undefined, context?.previousNotes ?? []);
 
-      toast.error("There was an error creating your note :(");
-      console.error("Error creating note: ", err);
-    },
-
-    onSuccess: () => {
-      toast.success("Note deleted");
+      toast.error("There was an error deleting your note :(");
+      console.error("Error deleting note: ", err);
     },
 
     onSettled: () => {
@@ -117,7 +115,7 @@ const AppPage: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="m-4 ml-0 flex flex-col xl:ml-[300px]">
+      <main className="m-4 flex flex-col xl:ml-[300px]">
         {!notesData?.length ? (
           <div className="mx-auto w-max border border-dashed border-gray-300 bg-white px-32 py-6 text-center dark:border-white/20 dark:bg-gray-900">
             <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-500" />
@@ -159,8 +157,9 @@ const AppPage: NextPage = () => {
                     {/* TODO: Title here */}
                   </h2>
 
-                  <button
+                  <span
                     title="Delete this note"
+                    className="cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
 
@@ -168,7 +167,7 @@ const AppPage: NextPage = () => {
                     }}
                   >
                     <XMarkIcon className="h-5 w-5 fill-yellow-700 dark:text-yellow-800" />
-                  </button>
+                  </span>
                 </div>
 
                 <div className="m-2 line-clamp-[8] whitespace-pre-line text-start font-sans text-sm">
