@@ -97,6 +97,11 @@ const NavMenu = () => {
 
 export const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isSignedIn } = useUser();
+
+  if (!isSignedIn) {
+    return null;
+  }
 
   return (
     <div>
