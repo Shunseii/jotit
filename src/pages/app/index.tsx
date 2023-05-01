@@ -12,6 +12,7 @@ import { type Note } from "@prisma/client";
 import { useSwipe } from "~/hooks/useSwipe";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 import { toast } from "react-hot-toast";
+import { NotificationListItem } from "~/components/CustomToaster";
 
 const AppPage: NextPage = () => {
   const router = useRouter();
@@ -44,7 +45,23 @@ const AppPage: NextPage = () => {
           oldNotes?.filter((oldNote) => oldNote.id !== note.id) ?? []
       );
 
-      toast("Note deleted");
+      toast.custom((t) => (
+        <NotificationListItem toast={t}>
+          <div className="ml-3 flex w-0 flex-1 justify-between pt-0.5">
+            <p className="line-clamp-3 text-sm font-medium text-gray-900 dark:text-gray-50">
+              Note deleted
+            </p>
+
+            {/* TODO: implement undo functionality */}
+            <button
+              type="button"
+              className="ml-3 flex-shrink-0 rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-indigo-500 dark:hover:text-indigo-400 dark:focus:ring-transparent"
+            >
+              Undo
+            </button>
+          </div>
+        </NotificationListItem>
+      ));
 
       return { previousNotes };
     },
@@ -56,8 +73,14 @@ const AppPage: NextPage = () => {
       console.error("Error deleting note: ", err);
     },
 
-    onSettled: () => {
-      void ctx.note.getAll.invalidate();
+    onSuccess: async (deletedNote) => {
+      await ctx.note.getAll.cancel();
+
+      ctx.note.getAll.setData(undefined, (oldNotes) =>
+        oldNotes
+          ? oldNotes.filter((oldNote) => oldNote.id !== deletedNote.id)
+          : []
+      );
     },
   });
 
