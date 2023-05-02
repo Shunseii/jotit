@@ -4,7 +4,9 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const noteRouter = createTRPCRouter({
   getAll: protectedProcedure.query(({ ctx }) => {
-    return ctx.prisma.note.findMany();
+    const { userId } = ctx.auth;
+
+    return ctx.prisma.note.findMany({ where: { userId } });
   }),
 
   create: protectedProcedure

@@ -26,6 +26,9 @@ specifiers:
   dayjs: ^1.11.7
   eslint: ^8.36.0
   eslint-config-next: ^13.2.4
+  immer: ^10.0.1
+  jotai: ^2.0.4
+  jotai-immer: ^0.2.0
   next: ^13.2.4
   next-themes: ^0.2.1
   postcss: ^8.4.21
@@ -36,8 +39,10 @@ specifiers:
   react-dom: 18.2.0
   react-hook-form: ^7.43.9
   react-hot-toast: ^2.4.1
+  react-hotkeys-hook: ^4.4.0
   superjson: 1.12.2
   tailwindcss: ^3.3.0
+  ts-key-enum: ^2.0.12
   typescript: ^5.0.2
   uuid: ^9.0.0
   zod: ^3.21.4
@@ -57,12 +62,16 @@ dependencies:
   '@trpc/react-query': 10.21.1_aumgwwoau4etd3bgorn7g5bilq
   '@trpc/server': 10.21.1
   dayjs: 1.11.7
+  immer: 10.0.1
+  jotai: 2.0.4_react@18.2.0
+  jotai-immer: 0.2.0_tyidqcg5hdyyf2hgqaev7fbs2y
   next: 13.3.1_biqbaboplfbrettd7655fr4n2y
   next-themes: 0.2.1_ivamjty3az7dj3hhadhjniqtwe
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
   react-hook-form: 7.43.9_react@18.2.0
   react-hot-toast: 2.4.1_s7mghcr6idhb4d5ook54gl4n44
+  react-hotkeys-hook: 4.4.0_biqbaboplfbrettd7655fr4n2y
   superjson: 1.12.2
   uuid: 9.0.0
   zod: 3.21.4
@@ -84,6 +93,7 @@ devDependencies:
   prettier-plugin-tailwindcss: 0.2.7_prettier@2.8.8
   prisma: 4.13.0
   tailwindcss: 3.3.1_postcss@8.4.23
+  ts-key-enum: 2.0.12
   typescript: 5.0.4
 
 packages:
@@ -1942,6 +1952,10 @@ packages:
     engines: {node: '>= 4'}
     dev: true
 
+  /immer/10.0.1:
+    resolution: {integrity: sha512-zg++jJLsKKTwXGeSYIw0HgChSYQGtu0UDTnbKx5aGLYgte4CwTmH9eJDYyQ6FheyUtBe+lQW9FrGxya1G+Dtmg==}
+    dev: false
+
   /import-fresh/3.3.0:
     resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}
     engines: {node: '>=6'}
@@ -2150,6 +2164,30 @@ packages:
   /jiti/1.18.2:
     resolution: {integrity: sha512-QAdOptna2NYiSSpv0O/BwoHBSmz4YhpzJHyi+fnMRTXFjp7B8i/YG5Z8IfusxB1ufjcD2Sre1F3R+nX3fvy7gg==}
     hasBin: true
+
+  /jotai-immer/0.2.0_tyidqcg5hdyyf2hgqaev7fbs2y:
+    resolution: {integrity: sha512-hahK8EPiROS9RoNWmX/Z8rY9WkAijspX4BZ1O7umpcwI4kPNkbcCpu/PhiQ8FMcpEcF6KmbpbMpSSj/GFmo8NA==}
+    peerDependencies:
+      immer: '*'
+      jotai: '>=1.11.0'
+      react: '>=17.0.0'
+    dependencies:
+      immer: 10.0.1
+      jotai: 2.0.4_react@18.2.0
+      react: 18.2.0
+    dev: false
+
+  /jotai/2.0.4_react@18.2.0:
+    resolution: {integrity: sha512-XkR1Jtm4a2iKV/7fdB3rNHjJz8FkkDMVczqiAok7lt8W4F69l/ZQkPGWSEV+hJOJXRn27k6XYKOoKEQIwBuAMA==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      react: '>=17.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+    dependencies:
+      react: 18.2.0
+    dev: false
 
   /js-sdsl/4.4.0:
     resolution: {integrity: sha512-FfVSdx6pJ41Oa+CF7RDaFmTnCaFhua+SNYQX74riGOpl96x+2jQCqEfQ2bnXu/5DPCqlRuiqyvTJM0Qjz26IVg==}
@@ -2761,6 +2799,16 @@ packages:
       - csstype
     dev: false
 
+  /react-hotkeys-hook/4.4.0_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-wOaCWLwgT/f895CMJrR9hmzVf+gfL8IpjWDXWXKngBp9i6Xqzf0tvLv4VI8l3Vlsg/cc4C/Iik3Ck76L/Hj0tw==}
+    peerDependencies:
+      react: '>=16.8.1'
+      react-dom: '>=16.8.1'
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    dev: false
+
   /react-is/16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
     dev: true
@@ -3143,6 +3191,10 @@ packages:
 
   /ts-interface-checker/0.1.13:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
+
+  /ts-key-enum/2.0.12:
+    resolution: {integrity: sha512-Ety4IvKMaeG34AyXMp5r11XiVZNDRL+XWxXbVVJjLvq2vxKRttEANBE7Za1bxCAZRdH2/sZT6jFyyTWxXz28hw==}
+    dev: true
 
   /tsconfig-paths/3.14.2:
     resolution: {integrity: sha512-o/9iXgCYc5L/JxCHPe3Hvh8Q/2xm5Z+p18PESBU6Ff33695QnCHBEjcytY2q19ua7Mbl/DavtBOLq+oG0RCL+g==}

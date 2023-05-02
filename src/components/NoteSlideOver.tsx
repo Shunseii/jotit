@@ -8,6 +8,10 @@ import { toast } from "react-hot-toast";
 import { api } from "~/utils/api";
 import { v4 } from "uuid";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useAtom } from "jotai";
+import { apiQueueAtom } from "~/pages/app";
+import { Queue } from "~/utils/queue";
 
 type CreateNoteFormInputs = {
   content: string;
@@ -22,6 +26,7 @@ export const NoteSlideOver = ({
   defaultNote: Note | null;
   onClose: () => void;
 }) => {
+  const [apiQueue, setApiQueue] = useAtom(apiQueueAtom);
   const { user } = useUser();
   const ctx = api.useContext();
   const { register, handleSubmit, reset, setValue } =
@@ -83,6 +88,10 @@ export const NoteSlideOver = ({
         oldNotes ? [...oldNotes, newNote] : [newNote]
       );
 
+      setApiQueue((draftMap) => {
+        draftMap.set(note.renderId, new Queue());
+      });
+
       return { previousNotes };
     },
 
@@ -93,14 +102,49 @@ export const NoteSlideOver = ({
       console.error("Error creating note: ", err);
     },
 
-    onSettled: () => {
+    onSuccess: (note) => {
+      const queue = apiQueue.get(note.renderId);
+
+      if (queue) {
+        while (!queue.isEmpty) {
+          setApiQueue((draftMap) => {
+            const apiCall = draftMap.get(note.renderId)?.dequeue();
+
+            apiCall && apiCall();
+          });
+        }
+      }
+
+      setApiQueue((draftMap) => {
+        draftMap.delete(note.renderId);
+      });
+    },
+
+    onSettled: (note) => {
+      setApiQueue((oldMap) => {
+        oldMap.delete(note?.renderId ?? "");
+      });
+
       void ctx.note.getAll.invalidate();
     },
   });
 
+  const handleEditNote = ({ content, id }: { content: string; id: string }) => {
+    if (apiQueue.has(id)) {
+      setApiQueue((draftMap) => {
+        const queue = draftMap.get(id);
+        if (queue) {
+          queue.enqueue(() => editNote({ content, id }));
+        }
+      });
+    } else {
+      editNote({ content, id });
+    }
+  };
+
   const onSubmit: SubmitHandler<CreateNoteFormInputs> = ({ content }) => {
     if (defaultNote) {
-      editNote({ content, id: defaultNote.id });
+      handleEditNote({ content, id: defaultNote.id });
     } else {
       createNote({ content, renderId: v4() });
     }
@@ -108,6 +152,14 @@ export const NoteSlideOver = ({
     onClose();
     reset();
   };
+
+  useHotkeys(
+    "meta+s, ctrl+s",
+    () => {
+      if (isOpen) void handleSubmit(onSubmit)();
+    },
+    { preventDefault: true, enableOnFormTags: ["textarea"] }
+  );
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>

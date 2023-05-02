@@ -1,26 +1,20 @@
 import { useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import {
-  ChartBarSquareIcon,
   Cog6ToothIcon,
-  FolderIcon,
-  GlobeAltIcon,
-  ServerIcon,
-  SignalIcon,
   XMarkIcon,
+  HomeIcon,
 } from "@heroicons/react/24/outline";
 import { Bars3Icon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
 import { Fragment, useState } from "react";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 import Image from "next/image";
+import { useRouter } from "next/router";
+import Link from "next/link";
 
 const navigation = [
-  { name: "Projects", href: "#", icon: FolderIcon, current: false },
-  { name: "Deployments", href: "#", icon: ServerIcon, current: true },
-  { name: "Activity", href: "#", icon: SignalIcon, current: false },
-  { name: "Domains", href: "#", icon: GlobeAltIcon, current: false },
-  { name: "Usages", href: "#", icon: ChartBarSquareIcon, current: false },
-  { name: "Settings", href: "#", icon: Cog6ToothIcon, current: false },
+  { name: "Home", href: "/app", Icon: HomeIcon },
+  { name: "Settings", href: "#", Icon: Cog6ToothIcon },
 ];
 
 const classNames = (...classes: string[]) => {
@@ -29,6 +23,7 @@ const classNames = (...classes: string[]) => {
 
 const NavMenu = () => {
   const { user } = useUser();
+  const router = useRouter();
 
   return (
     <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 ring-1 ring-gray-200 dark:bg-gray-900 dark:ring-white/5">
@@ -45,12 +40,12 @@ const NavMenu = () => {
         <ul role="list" className="flex flex-1 flex-col gap-y-7">
           <li>
             <ul role="list" className="-mx-2 space-y-1">
-              {navigation.map(({ current, href, icon: Icon, name }) => (
+              {navigation.map(({ href, Icon, name }) => (
                 <li key={name}>
-                  <a
+                  <Link
                     href={href}
                     className={classNames(
-                      current
+                      router.pathname === href
                         ? "bg-gray-50 text-indigo-600 dark:bg-gray-800 dark:text-white"
                         : "text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white",
                       "group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6"
@@ -58,7 +53,7 @@ const NavMenu = () => {
                   >
                     <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
                     {name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
