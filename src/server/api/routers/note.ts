@@ -27,10 +27,31 @@ export const noteRouter = createTRPCRouter({
     }),
 
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string(), renderId: z.string() }))
     .mutation(async ({ input, ctx }) => {
       const { id } = input;
 
-      return ctx.prisma.note.delete({ where: { id } });
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      // Delete all notes that are older than 1 day, regularly
+      await ctx.prisma.note.deleteMany({
+        where: { deletedAt: { lte: oneDayAgo } },
+      });
+
+      return ctx.prisma.note.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+    }),
+
+  undoDelete: protectedProcedure
+    .input(z.object({ id: z.string(), renderId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { id } = input;
+
+      return ctx.prisma.note.update({
+        where: { id },
+        data: { deletedAt: null },
+      });
     }),
 });

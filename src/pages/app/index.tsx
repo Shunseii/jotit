@@ -12,16 +12,20 @@ import { useSwipe } from "~/hooks/useSwipe";
 import { XMarkIcon } from "@heroicons/react/20/solid";
 import { toast } from "react-hot-toast";
 import { NotificationListItem } from "~/components/CustomToaster";
-import { useAtom } from "jotai";
+import { atom, useAtom } from "jotai";
 import { type Queue } from "~/utils/queue";
 import { atomWithImmer } from "jotai-immer";
 
 type APICall = (note: Note) => void;
 
 export const apiQueueAtom = atomWithImmer(new Map<string, Queue<APICall>>());
+export const slideoverInputAtom = atom("");
+export const isCapturingInputAtom = atom(true);
 
 const AppPage: NextPage = () => {
   const [apiQueue, setApiQueue] = useAtom(apiQueueAtom);
+  const [, setSlideoverInput] = useAtom(slideoverInputAtom);
+  const [isCapturingInput] = useAtom(isCapturingInputAtom);
   const router = useRouter();
   const [parent] = useAutoAnimate();
   const ctx = api.useContext();
@@ -39,6 +43,21 @@ const AppPage: NextPage = () => {
 
   const { data: notesData, isFetching: isFetchingNotes } =
     api.note.getAll.useQuery();
+
+  const { mutate: undoDelete } = api.note.undoDelete.useMutation({
+    onMutate: () => {
+      const previousNotes = ctx.note.getAll.getData();
+
+      return { previousNotes };
+    },
+
+    onError: (err, _newNote, context) => {
+      ctx.note.getAll.setData(undefined, context?.previousNotes ?? []);
+
+      toast.error("There was an error deleting your note :(");
+      console.error("Error deleting note: ", err);
+    },
+  });
 
   const { mutate: deleteNote } = api.note.delete.useMutation({
     onMutate: async (note) => {
@@ -59,10 +78,29 @@ const AppPage: NextPage = () => {
               Note deleted
             </p>
 
-            {/* TODO: implement undo functionality */}
             <button
               type="button"
               className="ml-3 flex-shrink-0 rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-indigo-500 dark:hover:text-indigo-400 dark:focus:ring-transparent"
+              onClick={() => {
+                const deletedNote = previousNotes?.find(
+                  ({ id }) => id === note.id
+                ) as Note;
+                const queue = apiQueue.get(note.renderId);
+                const fn = queue?.peek();
+
+                ctx.note.getAll.setData(undefined, (oldNotes) =>
+                  oldNotes ? [...oldNotes, deletedNote] : [deletedNote]
+                );
+
+                // TODO: don't use a queue for this
+                if (fn?.toString().includes("deleteNote")) {
+                  queue?.dequeue();
+                } else if (!queue) {
+                  undoDelete({ id: note.id, renderId: note.renderId });
+                }
+
+                toast.dismiss(t.id);
+              }}
             >
               Undo
             </button>
@@ -79,17 +117,29 @@ const AppPage: NextPage = () => {
       toast.error("There was an error deleting your note :(");
       console.error("Error deleting note: ", err);
     },
-
-    onSuccess: async (deletedNote) => {
-      await ctx.note.getAll.cancel();
-
-      ctx.note.getAll.setData(undefined, (oldNotes) =>
-        oldNotes
-          ? oldNotes.filter((oldNote) => oldNote.id !== deletedNote.id)
-          : []
-      );
-    },
   });
+
+  const handleDeleteNote = (note: Note) => {
+    if (apiQueue.has(note.renderId)) {
+      ctx.note.getAll.setData(
+        undefined,
+        (oldNotes) =>
+          oldNotes?.filter((oldNote) => oldNote.id !== note.id) ?? []
+      );
+
+      setApiQueue((draftMap) => {
+        const queue = draftMap.get(note.renderId);
+
+        if (queue) {
+          queue.enqueue(({ id, renderId }) => {
+            deleteNote({ id, renderId });
+          });
+        }
+      });
+    } else {
+      deleteNote({ id: note.id, renderId: note.renderId });
+    }
+  };
 
   useEffect(() => {
     if (selectedNote) {
@@ -100,6 +150,16 @@ const AppPage: NextPage = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const alphanumericRegex = /^[0-9a-zA-Z-+*]$/;
+
+      if (
+        alphanumericRegex.test(e.key) &&
+        !e.ctrlKey &&
+        !e.shiftKey &&
+        !e.altKey &&
+        isCapturingInput
+      ) {
+        setSlideoverInput((str) => str + e.key);
+      }
 
       if (
         alphanumericRegex.test(e.key) &&
@@ -127,7 +187,18 @@ const AppPage: NextPage = () => {
         swipeHandlers.onTouchStart
       );
     };
-  }, [isCreateNoteModalOpen, swipeHandlers]);
+  }, [
+    isCreateNoteModalOpen,
+    swipeHandlers,
+    setSlideoverInput,
+    isCapturingInput,
+  ]);
+
+  useEffect(() => {
+    if (!isCreateNoteModalOpen) {
+      setSlideoverInput("");
+    }
+  }, [isCreateNoteModalOpen, setSlideoverInput]);
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -171,7 +242,9 @@ const AppPage: NextPage = () => {
             {notesData.map((note) => (
               <button
                 key={note.renderId}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
+
                   setSelectedNote(note);
                 }}
                 className="flex flex-col rounded-lg border border-yellow-400 bg-white text-start dark:border-yellow-200 dark:bg-gray-900 dark:text-white"
@@ -184,30 +257,19 @@ const AppPage: NextPage = () => {
                   <span
                     title="Delete this note"
                     className="cursor-pointer"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleDeleteNote(note);
+                      }
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
 
-                      if (apiQueue.has(note.renderId)) {
-                        ctx.note.getAll.setData(
-                          undefined,
-                          (oldNotes) =>
-                            oldNotes?.filter(
-                              (oldNote) => oldNote.id !== note.id
-                            ) ?? []
-                        );
-
-                        setApiQueue((draftMap) => {
-                          const queue = draftMap.get(note.renderId);
-
-                          if (queue) {
-                            queue.enqueue(({ id }) => {
-                              deleteNote({ id });
-                            });
-                          }
-                        });
-                      } else {
-                        deleteNote({ id: note.id });
-                      }
+                      handleDeleteNote(note);
                     }}
                   >
                     <XMarkIcon className="h-5 w-5 fill-yellow-700 dark:text-yellow-800" />

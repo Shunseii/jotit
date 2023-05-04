@@ -10,7 +10,11 @@ import { v4 } from "uuid";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useAtom } from "jotai";
-import { apiQueueAtom } from "~/pages/app";
+import {
+  apiQueueAtom,
+  isCapturingInputAtom,
+  slideoverInputAtom,
+} from "~/pages/app";
 import { Queue } from "~/utils/queue";
 
 type CreateNoteFormInputs = {
@@ -26,17 +30,40 @@ export const NoteSlideOver = ({
   defaultNote: Note | null;
   onClose: () => void;
 }) => {
+  const [slideoverInput] = useAtom(slideoverInputAtom);
+  const [, setIsCapturingInput] = useAtom(isCapturingInputAtom);
   const [apiQueue, setApiQueue] = useAtom(apiQueueAtom);
   const { user } = useUser();
   const ctx = api.useContext();
-  const { register, handleSubmit, reset, setValue } =
-    useForm<CreateNoteFormInputs>({
-      defaultValues: { content: defaultNote?.content ?? "" },
-    });
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { isDirty, isSubmitting },
+  } = useForm<CreateNoteFormInputs>({
+    defaultValues: { content: slideoverInput ?? defaultNote?.content ?? "" },
+  });
+
+  const isTextareaFocused = isDirty || isSubmitting;
+
+  useEffect(() => {
+    setValue("content", slideoverInput ?? "");
+  }, [slideoverInput, setValue]);
 
   useEffect(() => {
     setValue("content", defaultNote?.content ?? "");
   }, [defaultNote, setValue]);
+
+  useEffect(() => {
+    setIsCapturingInput(!isTextareaFocused);
+  }, [isTextareaFocused, setIsCapturingInput]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      reset();
+    }
+  }, [isOpen, reset]);
 
   const { mutate: editNote } = api.note.edit.useMutation({
     onMutate: async (note) => {
@@ -82,6 +109,7 @@ export const NoteSlideOver = ({
         updatedAt: dayjs().toDate(),
         renderId: note.renderId,
         id: v4(),
+        deletedAt: null,
       };
 
       ctx.note.getAll.setData(undefined, (oldNotes) =>
