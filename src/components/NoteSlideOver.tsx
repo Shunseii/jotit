@@ -95,8 +95,12 @@ export const NoteSlideOver = ({
       return { previousNotes };
     },
 
-    onError: (err, _newNote, context) => {
+    onError: (err, newNote, context) => {
       ctx.note.getAll.setData(undefined, context?.previousNotes ?? []);
+
+      setApiQueue((draftMap) => {
+        draftMap.delete(newNote.renderId);
+      });
 
       toast.error("There was an error creating your note :(");
       console.error("Error creating note: ", err);
@@ -110,31 +114,33 @@ export const NoteSlideOver = ({
           setApiQueue((draftMap) => {
             const apiCall = draftMap.get(note.renderId)?.dequeue();
 
-            apiCall && apiCall();
+            apiCall && apiCall(note);
           });
         }
+
+        void ctx.note.getAll.invalidate();
       }
 
       setApiQueue((draftMap) => {
         draftMap.delete(note.renderId);
       });
     },
-
-    onSettled: (note) => {
-      setApiQueue((oldMap) => {
-        oldMap.delete(note?.renderId ?? "");
-      });
-
-      void ctx.note.getAll.invalidate();
-    },
   });
 
-  const handleEditNote = ({ content, id }: { content: string; id: string }) => {
+  const handleEditNote = ({
+    content,
+    id,
+    renderId,
+  }: {
+    content: string;
+    id: string;
+    renderId: string;
+  }) => {
     if (apiQueue.has(id)) {
       setApiQueue((draftMap) => {
-        const queue = draftMap.get(id);
+        const queue = draftMap.get(renderId);
         if (queue) {
-          queue.enqueue(() => editNote({ content, id }));
+          queue.enqueue(({ id, content }) => editNote({ content, id }));
         }
       });
     } else {
@@ -144,7 +150,11 @@ export const NoteSlideOver = ({
 
   const onSubmit: SubmitHandler<CreateNoteFormInputs> = ({ content }) => {
     if (defaultNote) {
-      handleEditNote({ content, id: defaultNote.id });
+      handleEditNote({
+        content,
+        id: defaultNote.id,
+        renderId: defaultNote.renderId,
+      });
     } else {
       createNote({ content, renderId: v4() });
     }

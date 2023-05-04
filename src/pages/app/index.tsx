@@ -16,7 +16,7 @@ import { useAtom } from "jotai";
 import { type Queue } from "~/utils/queue";
 import { atomWithImmer } from "jotai-immer";
 
-type APICall = () => void;
+type APICall = (note: Note) => void;
 
 export const apiQueueAtom = atomWithImmer(new Map<string, Queue<APICall>>());
 
@@ -187,11 +187,22 @@ const AppPage: NextPage = () => {
                     onClick={(e) => {
                       e.stopPropagation();
 
-                      if (apiQueue.has(note.id)) {
+                      if (apiQueue.has(note.renderId)) {
+                        ctx.note.getAll.setData(
+                          undefined,
+                          (oldNotes) =>
+                            oldNotes?.filter(
+                              (oldNote) => oldNote.id !== note.id
+                            ) ?? []
+                        );
+
                         setApiQueue((draftMap) => {
-                          const queue = draftMap.get(note.id);
+                          const queue = draftMap.get(note.renderId);
+
                           if (queue) {
-                            queue.enqueue(() => deleteNote({ id: note.id }));
+                            queue.enqueue(({ id }) => {
+                              deleteNote({ id });
+                            });
                           }
                         });
                       } else {
