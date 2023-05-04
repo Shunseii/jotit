@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/nextjs";
+import { UserButton, useClerk, useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   Cog6ToothIcon,
@@ -23,6 +23,7 @@ const classNames = (...classes: string[]) => {
 
 const NavMenu = () => {
   const { user } = useUser();
+  const { signOut } = useClerk();
   const router = useRouter();
 
   return (
@@ -59,9 +60,11 @@ const NavMenu = () => {
             </ul>
           </li>
           <li className="-mx-6 mt-auto">
-            <a
-              href="#"
-              className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-800"
+            <button
+              className="flex w-full items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-700 hover:bg-gray-50 dark:text-white dark:hover:bg-gray-800"
+              onClick={() => {
+                void signOut();
+              }}
             >
               {user?.profileImageUrl && (
                 <Image
@@ -75,7 +78,8 @@ const NavMenu = () => {
 
               <span className="sr-only">Your profile</span>
               <span aria-hidden="true">{user?.username}</span>
-            </a>
+            </button>
+            {/* <UserButton>Hellooo</UserButton> */}
           </li>
         </ul>
       </nav>
@@ -85,11 +89,6 @@ const NavMenu = () => {
 
 export const Layout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { isSignedIn } = useUser();
-
-  if (!isSignedIn) {
-    return null;
-  }
 
   return (
     <div>
