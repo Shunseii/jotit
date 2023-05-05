@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { NoteSlideOver } from "~/components/NoteSlideOver";
 import { LoadingPage } from "~/components/LoadingSpinner";
 import { api } from "~/utils/api";
-import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { DocumentTextIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { type Note } from "@prisma/client";
 import { useSwipe } from "~/hooks/useSwipe";
@@ -15,19 +14,24 @@ import { NotificationListItem } from "~/components/CustomToaster";
 import { atom, useAtom } from "jotai";
 import { type Queue } from "~/utils/queue";
 import { atomWithImmer } from "jotai-immer";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTimeoutEffect } from "@react-hookz/web";
 
 type APICall = (note: Note) => void;
 
 export const apiQueueAtom = atomWithImmer(new Map<string, Queue<APICall>>());
 export const slideoverInputAtom = atom("");
 export const isCapturingInputAtom = atom(true);
+export const isTypeHotkeyEnabledAtom = atom(true);
 
 const AppPage: NextPage = () => {
+  const [isTypeHotkeyEnabled, setIsTypeHotkeyEnabled] = useAtom(
+    isTypeHotkeyEnabledAtom
+  );
   const [apiQueue, setApiQueue] = useAtom(apiQueueAtom);
   const [, setSlideoverInput] = useAtom(slideoverInputAtom);
   const [isCapturingInput] = useAtom(isCapturingInputAtom);
   const router = useRouter();
-  const [parent] = useAutoAnimate();
   const ctx = api.useContext();
   const { isSignedIn, isLoaded } = useUser();
   const [isCreateNoteModalOpen, setIsCreateNoteModalOpen] = useState(false);
@@ -40,6 +44,9 @@ const AppPage: NextPage = () => {
     },
   });
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [, reset] = useTimeoutEffect(() => {
+    setIsTypeHotkeyEnabled(true);
+  }, 500);
 
   const { data: notesData, isFetching: isFetchingNotes } =
     api.note.getAll.useQuery();
@@ -156,6 +163,7 @@ const AppPage: NextPage = () => {
         !e.ctrlKey &&
         !e.shiftKey &&
         !e.altKey &&
+        isTypeHotkeyEnabled &&
         isCapturingInput
       ) {
         setSlideoverInput((str) => str + e.key);
@@ -166,6 +174,7 @@ const AppPage: NextPage = () => {
         !e.ctrlKey &&
         !e.shiftKey &&
         !e.altKey &&
+        isTypeHotkeyEnabled &&
         !isCreateNoteModalOpen
       ) {
         setSelectedNote(null);
@@ -192,13 +201,15 @@ const AppPage: NextPage = () => {
     swipeHandlers,
     setSlideoverInput,
     isCapturingInput,
+    isTypeHotkeyEnabled,
   ]);
 
   useEffect(() => {
     if (!isCreateNoteModalOpen) {
+      reset();
       setSlideoverInput("");
     }
-  }, [isCreateNoteModalOpen, setSlideoverInput]);
+  }, [isCreateNoteModalOpen, setSlideoverInput, reset]);
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -238,49 +249,56 @@ const AppPage: NextPage = () => {
             </div>
           </div>
         ) : (
-          <div ref={parent} className="grid grid-cols-fill-xs gap-3">
-            {notesData.map((note) => (
-              <button
-                key={note.renderId}
-                onClick={(e) => {
-                  e.stopPropagation();
+          <div className="grid grid-cols-fill-xs gap-3">
+            <AnimatePresence>
+              {notesData.map((note) => (
+                <motion.button
+                  key={note.renderId}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
 
-                  setSelectedNote(note);
-                }}
-                className="flex flex-col rounded-lg border border-yellow-400 bg-white text-start dark:border-yellow-200 dark:bg-gray-900 dark:text-white"
-              >
-                <div className="flex w-full items-center justify-between rounded-t bg-yellow-400 px-2 py-1 dark:bg-yellow-200">
-                  <h2 className="font-sans text-sm font-semibold text-yellow-700 dark:text-yellow-800">
-                    {/* TODO: Title here */}
-                  </h2>
+                    setSelectedNote(note);
+                  }}
+                  className="flex flex-col rounded-lg border border-yellow-400 bg-white text-start dark:border-yellow-200 dark:bg-gray-900 dark:text-white"
+                >
+                  <div className="flex w-full items-center justify-between rounded-t bg-yellow-400 px-2 py-1 dark:bg-yellow-200">
+                    <h2 className="font-sans text-sm font-semibold text-yellow-700 dark:text-yellow-800">
+                      {/* TODO: Title here */}
+                    </h2>
 
-                  <span
-                    title="Delete this note"
-                    className="cursor-pointer"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      e.stopPropagation();
+                    <span
+                      title="Delete this note"
+                      className="cursor-pointer"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        e.stopPropagation();
 
-                      if (e.key === "Enter") {
-                        e.preventDefault();
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+
+                          handleDeleteNote(note);
+                        }
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+
                         handleDeleteNote(note);
-                      }
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
+                      }}
+                    >
+                      <XMarkIcon className="h-5 w-5 fill-yellow-700 dark:text-yellow-800" />
+                    </span>
+                  </div>
 
-                      handleDeleteNote(note);
-                    }}
-                  >
-                    <XMarkIcon className="h-5 w-5 fill-yellow-700 dark:text-yellow-800" />
-                  </span>
-                </div>
-
-                <div className="m-2 line-clamp-[8] whitespace-pre-line text-start font-sans text-sm">
-                  {note.content}
-                </div>
-              </button>
-            ))}
+                  <div className="m-2 line-clamp-[8] whitespace-pre-line text-start font-sans text-sm">
+                    {note.content}
+                  </div>
+                </motion.button>
+              ))}
+            </AnimatePresence>
           </div>
         )}
 

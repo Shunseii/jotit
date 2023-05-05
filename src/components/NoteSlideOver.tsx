@@ -13,6 +13,7 @@ import { useAtom } from "jotai";
 import {
   apiQueueAtom,
   isCapturingInputAtom,
+  isTypeHotkeyEnabledAtom,
   slideoverInputAtom,
 } from "~/pages/app";
 import { Queue } from "~/utils/queue";
@@ -34,6 +35,7 @@ export const NoteSlideOver = ({
   const [, setIsCapturingInput] = useAtom(isCapturingInputAtom);
   const [apiQueue, setApiQueue] = useAtom(apiQueueAtom);
   const { user } = useUser();
+  const [, setIsTypeHotkeyEnabled] = useAtom(isTypeHotkeyEnabledAtom);
   const ctx = api.useContext();
   const {
     register,
@@ -62,8 +64,9 @@ export const NoteSlideOver = ({
   useEffect(() => {
     if (!isOpen) {
       reset();
+      setIsTypeHotkeyEnabled(false);
     }
-  }, [isOpen, reset]);
+  }, [isOpen, reset, setIsTypeHotkeyEnabled]);
 
   const { mutate: editNote } = api.note.edit.useMutation({
     onMutate: async (note) => {
