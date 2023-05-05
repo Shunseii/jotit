@@ -55,9 +55,9 @@ const MyApp: AppType = ({ Component, pageProps }) => {
           ) : (
             <>
               <SignedIn>
-                <Layout />
-
-                <Component {...pageProps} />
+                <Layout>
+                  <Component {...pageProps} />
+                </Layout>
               </SignedIn>
 
               <SignedOut>

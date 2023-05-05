@@ -16,6 +16,7 @@ import { type Queue } from "~/utils/queue";
 import { atomWithImmer } from "jotai-immer";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTimeoutEffect } from "@react-hookz/web";
+import { isSidebarOpenAtom } from "~/components/Layout";
 
 type APICall = (note: Note) => void;
 
@@ -25,6 +26,7 @@ export const isCapturingInputAtom = atom(true);
 export const isTypeHotkeyEnabledAtom = atom(true);
 
 const AppPage: NextPage = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useAtom(isSidebarOpenAtom);
   const [isTypeHotkeyEnabled, setIsTypeHotkeyEnabled] = useAtom(
     isTypeHotkeyEnabledAtom
   );
@@ -37,7 +39,11 @@ const AppPage: NextPage = () => {
   const [isCreateNoteModalOpen, setIsCreateNoteModalOpen] = useState(false);
   const swipeHandlers = useSwipe({
     onSwipedLeft: () => {
-      setIsCreateNoteModalOpen(true);
+      if (!isSidebarOpen) {
+        setIsCreateNoteModalOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
     },
     onSwipedRight: () => {
       setIsCreateNoteModalOpen(false);
@@ -221,9 +227,9 @@ const AppPage: NextPage = () => {
 
   return (
     <>
-      <main className="m-4 flex flex-col xl:ml-[300px]">
+      <main className="m-4 flex flex-col">
         {!notesData?.length ? (
-          <div className="mx-auto w-max border border-dashed border-gray-300 bg-white px-32 py-6 text-center dark:border-white/20 dark:bg-gray-900">
+          <div className="mx-auto w-full max-w-md border border-dashed border-gray-300 bg-white px-6 py-6 text-center dark:border-white/20 dark:bg-gray-900 xl:w-max xl:px-32">
             <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-500" />
 
             <h3 className="mt-2 text-sm font-semibold text-gray-900 dark:text-white">

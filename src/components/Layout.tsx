@@ -6,11 +6,18 @@ import {
   HomeIcon,
 } from "@heroicons/react/24/outline";
 import { Bars3Icon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
-import { Fragment, useState } from "react";
+import {
+  type FC,
+  Fragment,
+  type ReactNode,
+  useLayoutEffect,
+  useState,
+} from "react";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { atom, useAtom } from "jotai";
 
 const navigation = [
   { name: "Home", href: "/app", Icon: HomeIcon },
@@ -79,7 +86,6 @@ const NavMenu = () => {
               <span className="sr-only">Your profile</span>
               <span aria-hidden="true">{user?.username}</span>
             </button>
-            {/* <UserButton>Hellooo</UserButton> */}
           </li>
         </ul>
       </nav>
@@ -87,8 +93,35 @@ const NavMenu = () => {
   );
 };
 
-export const Layout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+export const isSidebarOpenAtom = atom(false);
+
+export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
+  // TODO: Implement header hiding when scrolling down and displaying when scrolling up
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [isSidebarOpen, setIsSidebarOpen] = useAtom(isSidebarOpenAtom);
+
+  useLayoutEffect(() => {
+    function handleScroll() {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY === 0) {
+        setIsHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        setIsHeaderVisible(false);
+      } else {
+        setIsHeaderVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    }
+
+    window.addEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [lastScrollY]);
 
   return (
     <div>
@@ -161,7 +194,11 @@ export const Layout = () => {
 
       <div className="xl:ml-72">
         {/* Sticky search header */}
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-6 border-b border-gray-200 bg-white px-4 shadow-sm dark:border-white/5 dark:bg-gray-900 sm:px-6 lg:px-8">
+        <div
+          className={`
+            sticky top-0 z-40 flex h-12 shrink-0 items-center gap-x-6 border-b border-gray-200 bg-white px-4 shadow-sm transition-all dark:border-white/5 dark:bg-gray-900 sm:px-6 lg:px-8 xl:h-14
+          `}
+        >
           <button
             type="button"
             className="-m-2.5 p-2.5 text-gray-700 dark:text-white xl:hidden"
@@ -192,6 +229,8 @@ export const Layout = () => {
             </form>
           </div>
         </div>
+
+        {children}
       </div>
     </div>
   );
