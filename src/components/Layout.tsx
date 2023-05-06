@@ -1,4 +1,4 @@
-import { UserButton, useClerk, useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import {
   Cog6ToothIcon,

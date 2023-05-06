@@ -17,6 +17,8 @@ import { atomWithImmer } from "jotai-immer";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTimeoutEffect } from "@react-hookz/web";
 import { isSidebarOpenAtom } from "~/components/Layout";
+import { useHotkeys } from "react-hotkeys-hook";
+import { getAlphanumericCharacters } from "~/utils/hotkeys";
 
 type APICall = (note: Note) => void;
 
@@ -160,41 +162,23 @@ const AppPage: NextPage = () => {
     }
   }, [selectedNote]);
 
+  useHotkeys(getAlphanumericCharacters(), (e) => {
+    if (isTypeHotkeyEnabled && isCapturingInput) {
+      setSlideoverInput((str) => str + e.key);
+    }
+
+    if (isTypeHotkeyEnabled && !isCreateNoteModalOpen) {
+      setSelectedNote(null);
+      setIsCreateNoteModalOpen(true);
+    }
+  });
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const alphanumericRegex = /^[0-9a-zA-Z-+*]$/;
-
-      if (
-        alphanumericRegex.test(e.key) &&
-        !e.ctrlKey &&
-        !e.shiftKey &&
-        !e.altKey &&
-        isTypeHotkeyEnabled &&
-        isCapturingInput
-      ) {
-        setSlideoverInput((str) => str + e.key);
-      }
-
-      if (
-        alphanumericRegex.test(e.key) &&
-        !e.ctrlKey &&
-        !e.shiftKey &&
-        !e.altKey &&
-        isTypeHotkeyEnabled &&
-        !isCreateNoteModalOpen
-      ) {
-        setSelectedNote(null);
-        setIsCreateNoteModalOpen(true);
-      }
-    };
-
-    document.body.addEventListener("keyup", handleKeyDown);
     document.body.addEventListener("touchend", swipeHandlers.onTouchEnd);
     document.body.addEventListener("touchmove", swipeHandlers.onTouchMove);
     document.body.addEventListener("touchstart", swipeHandlers.onTouchStart);
 
     return () => {
-      document.body.removeEventListener("keyup", handleKeyDown);
       document.body.removeEventListener("touchend", swipeHandlers.onTouchEnd);
       document.body.removeEventListener("touchmove", swipeHandlers.onTouchMove);
       document.body.removeEventListener(
@@ -209,6 +193,13 @@ const AppPage: NextPage = () => {
     isCapturingInput,
     isTypeHotkeyEnabled,
   ]);
+
+  // To fix a bug where it's false after a hot reload
+  useEffect(() => {
+    if (!isTypeHotkeyEnabled) {
+      reset();
+    }
+  }, [isTypeHotkeyEnabled, reset]);
 
   useEffect(() => {
     if (!isCreateNoteModalOpen) {
