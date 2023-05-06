@@ -3,11 +3,15 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const noteRouter = createTRPCRouter({
-  getAll: protectedProcedure.query(({ ctx }) => {
-    const { userId } = ctx.auth;
+  getAll: protectedProcedure
+    .input(z.object({ searchKeyword: z.string().optional() }).optional())
+    .query(({ ctx, input }) => {
+      const { userId } = ctx.auth;
 
-    return ctx.prisma.note.findMany({ where: { userId } });
-  }),
+      return ctx.prisma.note.findMany({
+        where: { userId, AND: [{ content: { search: input?.searchKeyword } }] },
+      });
+    }),
 
   create: protectedProcedure
     .input(z.object({ content: z.string(), renderId: z.string() }))

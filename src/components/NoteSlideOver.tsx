@@ -11,12 +11,14 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useAtom } from "jotai";
 import {
+  type GetAllNotesInput,
   apiQueueAtom,
   isCapturingInputAtom,
   isTypeHotkeyEnabledAtom,
   slideoverInputAtom,
 } from "~/pages/app";
 import { Queue } from "~/utils/queue";
+import { searchInputAtom } from "./Layout";
 
 type CreateNoteFormInputs = {
   content: string;
@@ -32,6 +34,7 @@ export const NoteSlideOver = ({
   onClose: () => void;
 }) => {
   const [slideoverInput] = useAtom(slideoverInputAtom);
+  const [searchInput] = useAtom(searchInputAtom);
   const [, setIsCapturingInput] = useAtom(isCapturingInputAtom);
   const [apiQueue, setApiQueue] = useAtom(apiQueueAtom);
   const { user } = useUser();
@@ -68,13 +71,17 @@ export const NoteSlideOver = ({
     }
   }, [isOpen, reset, setIsTypeHotkeyEnabled]);
 
+  const getAllNotesQueryInputs: GetAllNotesInput = {
+    searchKeyword: searchInput || undefined,
+  };
+
   const { mutate: editNote } = api.note.edit.useMutation({
     onMutate: async (note) => {
       await ctx.note.getAll.cancel();
 
-      const previousNotes = ctx.note.getAll.getData();
+      const previousNotes = ctx.note.getAll.getData(getAllNotesQueryInputs);
 
-      ctx.note.getAll.setData(undefined, (oldNotes) => {
+      ctx.note.getAll.setData(getAllNotesQueryInputs, (oldNotes) => {
         return (
           oldNotes?.map((oldNote) =>
             oldNote.id === note.id
@@ -88,7 +95,10 @@ export const NoteSlideOver = ({
     },
 
     onError: (err, _newNote, context) => {
-      ctx.note.getAll.setData(undefined, context?.previousNotes ?? []);
+      ctx.note.getAll.setData(
+        getAllNotesQueryInputs,
+        context?.previousNotes ?? []
+      );
 
       toast.error("There was an error creating your note :(");
       console.error("Error creating note: ", err);
@@ -103,7 +113,7 @@ export const NoteSlideOver = ({
     onMutate: async (note) => {
       await ctx.note.getAll.cancel();
 
-      const previousNotes = ctx.note.getAll.getData();
+      const previousNotes = ctx.note.getAll.getData(getAllNotesQueryInputs);
 
       const newNote: Note = {
         userId: user?.id ?? "",
@@ -115,7 +125,7 @@ export const NoteSlideOver = ({
         deletedAt: null,
       };
 
-      ctx.note.getAll.setData(undefined, (oldNotes) =>
+      ctx.note.getAll.setData(getAllNotesQueryInputs, (oldNotes) =>
         oldNotes ? [...oldNotes, newNote] : [newNote]
       );
 
@@ -127,7 +137,10 @@ export const NoteSlideOver = ({
     },
 
     onError: (err, newNote, context) => {
-      ctx.note.getAll.setData(undefined, context?.previousNotes ?? []);
+      ctx.note.getAll.setData(
+        getAllNotesQueryInputs,
+        context?.previousNotes ?? []
+      );
 
       setApiQueue((draftMap) => {
         draftMap.delete(newNote.renderId);
