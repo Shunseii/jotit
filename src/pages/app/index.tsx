@@ -303,6 +303,7 @@ const AppPage: NextPage = () => {
                   {notesData.map((note) => (
                     <motion.button
                       key={note.renderId}
+                      layout="position"
                       initial={{ opacity: 0, y: -20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
