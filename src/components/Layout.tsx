@@ -109,7 +109,8 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useAtom(isSidebarOpenAtom);
   const [, setSearchInput] = useAtom(searchInputAtom);
-  const { register, watch, setFocus } = useForm<SearchFormInputs>();
+  const { register, watch, setFocus, handleSubmit } =
+    useForm<SearchFormInputs>();
 
   useDebouncedEffect(
     () => {
@@ -235,7 +236,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
           </button>
 
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <form className="flex flex-1">
+            <form className="flex flex-1" onSubmit={handleSubmit(() => null)}>
               <label htmlFor="search-field" className="sr-only">
                 Search
               </label>
