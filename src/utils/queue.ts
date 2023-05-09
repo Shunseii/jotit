@@ -1,41 +1,72 @@
-export class Queue<T> {
-  private elements: { [key: string]: T };
-  private head: number;
-  private tail: number;
+import { type Note } from "@prisma/client";
 
-  constructor() {
-    this.elements = {};
-    this.head = 0;
-    this.tail = 0;
+export interface MutationQueueItem {
+  apiCall: () => Promise<unknown>;
+  optimisticUpdate: () => void;
+  previousState: Note[];
+}
+
+export class MutationQueue {
+  private queue: MutationQueueItem[] = [];
+  private isProcessing = false;
+  /**
+   * State before the previous action was executed
+   */
+  private lastState: Note[] = [];
+
+  /**
+   * Enqueues a new mutation to the queue
+   * @param item The mutation to enqueue
+   */
+  async enqueue(item: MutationQueueItem) {
+    this.queue.push(item);
+
+    this.lastState = item.previousState;
+
+    // Perform the optimistic update
+    item.optimisticUpdate();
+
+    if (!this.isProcessing) {
+      await this.processQueue();
+    }
   }
 
-  enqueue(element: T) {
-    this.elements[this.tail] = element;
-    this.tail++;
+  /**
+   * Processes the queue by dequeueing and executing each item
+   */
+  async processQueue() {
+    this.isProcessing = true;
+
+    while (this.queue.length > 0) {
+      const item = this.queue.shift() as MutationQueueItem;
+
+      try {
+        // Make the API call
+        await item.apiCall();
+      } catch (error) {
+        this.clear();
+      }
+    }
+
+    this.isProcessing = false;
   }
 
-  dequeue() {
-    const item = this.elements[this.head];
-    delete this.elements[this.head];
-
-    this.head++;
-
-    return item;
+  /**
+   * Clear all the records in the queue.
+   */
+  private clear() {
+    this.queue = [];
   }
 
   peek() {
-    return this.elements[this.head];
+    return this.queue[0];
   }
 
-  get length() {
-    return this.tail - this.head;
+  get isProcessingRecords() {
+    return this.isProcessing;
   }
 
-  get isEmpty() {
-    return this.length === 0;
-  }
-
-  inspect() {
-    return Object.values(this.elements);
+  get previousState() {
+    return this.lastState;
   }
 }

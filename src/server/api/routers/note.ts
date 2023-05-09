@@ -3,11 +3,18 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const noteRouter = createTRPCRouter({
-  getAll: protectedProcedure.query(({ ctx }) => {
-    const { userId } = ctx.auth;
+  getAll: protectedProcedure
+    .input(z.object({ searchKeyword: z.string().optional() }).optional())
+    .query(({ ctx, input }) => {
+      const { userId } = ctx.auth;
 
-    return ctx.prisma.note.findMany({ where: { userId } });
-  }),
+      return ctx.prisma.note.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+        where: { userId, AND: [{ content: { search: input?.searchKeyword } }] },
+      });
+    }),
 
   create: protectedProcedure
     .input(z.object({ content: z.string(), renderId: z.string() }))
@@ -19,17 +26,19 @@ export const noteRouter = createTRPCRouter({
     }),
 
   edit: protectedProcedure
-    .input(z.object({ content: z.string(), id: z.string() }))
+    .input(
+      z.object({ content: z.string(), id: z.string(), renderId: z.string() })
+    )
     .mutation(async ({ input, ctx }) => {
-      const { content, id } = input;
+      const { content, renderId } = input;
 
-      return ctx.prisma.note.update({ where: { id }, data: { content } });
+      return ctx.prisma.note.update({ where: { renderId }, data: { content } });
     }),
 
   delete: protectedProcedure
     .input(z.object({ id: z.string(), renderId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const { id } = input;
+      const { renderId } = input;
 
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -39,7 +48,7 @@ export const noteRouter = createTRPCRouter({
       });
 
       return ctx.prisma.note.update({
-        where: { id },
+        where: { renderId },
         data: { deletedAt: new Date() },
       });
     }),
@@ -47,10 +56,10 @@ export const noteRouter = createTRPCRouter({
   undoDelete: protectedProcedure
     .input(z.object({ id: z.string(), renderId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { id } = input;
+      const { renderId } = input;
 
       return ctx.prisma.note.update({
-        where: { id },
+        where: { renderId },
         data: { deletedAt: null },
       });
     }),

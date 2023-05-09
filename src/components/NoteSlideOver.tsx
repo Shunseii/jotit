@@ -11,12 +11,14 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useAtom } from "jotai";
 import {
-  apiQueueAtom,
+  type GetAllNotesInput,
   isCapturingInputAtom,
   isTypeHotkeyEnabledAtom,
   slideoverInputAtom,
+  noteMutationQueuesAtom,
 } from "~/pages/app";
-import { Queue } from "~/utils/queue";
+import { searchInputAtom } from "./Layout";
+import { MutationQueue } from "~/utils/queue";
 
 type CreateNoteFormInputs = {
   content: string;
@@ -32,8 +34,9 @@ export const NoteSlideOver = ({
   onClose: () => void;
 }) => {
   const [slideoverInput] = useAtom(slideoverInputAtom);
+  const [searchInput] = useAtom(searchInputAtom);
   const [, setIsCapturingInput] = useAtom(isCapturingInputAtom);
-  const [apiQueue, setApiQueue] = useAtom(apiQueueAtom);
+  const [, setNoteMutationQueues] = useAtom(noteMutationQueuesAtom);
   const { user } = useUser();
   const [, setIsTypeHotkeyEnabled] = useAtom(isTypeHotkeyEnabledAtom);
   const ctx = api.useContext();
@@ -68,95 +71,92 @@ export const NoteSlideOver = ({
     }
   }, [isOpen, reset, setIsTypeHotkeyEnabled]);
 
-  const { mutate: editNote } = api.note.edit.useMutation({
-    onMutate: async (note) => {
+  const getAllNotesQueryInputs: GetAllNotesInput = {
+    searchKeyword: searchInput || undefined,
+  };
+
+  const { mutateAsync: editNote } = api.note.edit.useMutation({
+    onMutate: async () => {
       await ctx.note.getAll.cancel();
 
-      const previousNotes = ctx.note.getAll.getData();
-
-      ctx.note.getAll.setData(undefined, (oldNotes) => {
-        return (
-          oldNotes?.map((oldNote) =>
-            oldNote.id === note.id
-              ? { ...oldNote, content: note.content }
-              : oldNote
-          ) ?? []
-        );
-      });
+      // TODO: use correct previous state
+      const previousNotes = ctx.note.getAll.getData(getAllNotesQueryInputs);
 
       return { previousNotes };
     },
 
     onError: (err, _newNote, context) => {
-      ctx.note.getAll.setData(undefined, context?.previousNotes ?? []);
+      ctx.note.getAll.setData(
+        getAllNotesQueryInputs,
+        context?.previousNotes ?? []
+      );
 
       toast.error("There was an error creating your note :(");
       console.error("Error creating note: ", err);
-    },
 
-    onSettled: () => {
       void ctx.note.getAll.invalidate();
     },
   });
 
-  const { mutate: createNote } = api.note.create.useMutation({
-    onMutate: async (note) => {
+  const { mutateAsync: createNote } = api.note.create.useMutation({
+    onMutate: async () => {
       await ctx.note.getAll.cancel();
 
-      const previousNotes = ctx.note.getAll.getData();
-
-      const newNote: Note = {
-        userId: user?.id ?? "",
-        content: note.content,
-        createdAt: dayjs().toDate(),
-        updatedAt: dayjs().toDate(),
-        renderId: note.renderId,
-        id: v4(),
-        deletedAt: null,
-      };
-
-      ctx.note.getAll.setData(undefined, (oldNotes) =>
-        oldNotes ? [...oldNotes, newNote] : [newNote]
-      );
-
-      setApiQueue((draftMap) => {
-        draftMap.set(note.renderId, new Queue());
-      });
+      // TODO: use correct previous state
+      const previousNotes = ctx.note.getAll.getData(getAllNotesQueryInputs);
 
       return { previousNotes };
     },
 
-    onError: (err, newNote, context) => {
-      ctx.note.getAll.setData(undefined, context?.previousNotes ?? []);
-
-      setApiQueue((draftMap) => {
-        draftMap.delete(newNote.renderId);
-      });
+    onError: (err, _newNote, context) => {
+      ctx.note.getAll.setData(
+        getAllNotesQueryInputs,
+        context?.previousNotes ?? []
+      );
 
       toast.error("There was an error creating your note :(");
       console.error("Error creating note: ", err);
-    },
 
-    onSuccess: (note) => {
-      const queue = apiQueue.get(note.renderId);
-
-      if (queue) {
-        while (!queue.isEmpty) {
-          setApiQueue((draftMap) => {
-            const apiCall = draftMap.get(note.renderId)?.dequeue();
-
-            apiCall && apiCall(note);
-          });
-        }
-
-        void ctx.note.getAll.invalidate();
-      }
-
-      setApiQueue((draftMap) => {
-        draftMap.delete(note.renderId);
-      });
+      void ctx.note.getAll.invalidate();
     },
   });
+
+  const handleCreateNote = ({ content }: { content: string }) => {
+    const newNote: Note = {
+      userId: user?.id ?? "",
+      content: content,
+      createdAt: dayjs().toDate(),
+      updatedAt: dayjs().toDate(),
+      renderId: v4(),
+      id: v4(),
+      deletedAt: null,
+    };
+
+    setNoteMutationQueues((draftMap) => {
+      if (!draftMap.has(newNote.renderId)) {
+        draftMap.set(newNote.renderId, new MutationQueue());
+      }
+
+      void draftMap.get(newNote.renderId)?.enqueue({
+        apiCall: async () => {
+          await createNote({
+            content: newNote.content,
+            renderId: newNote.renderId,
+          });
+        },
+        optimisticUpdate: () => {
+          const note = { ...newNote };
+
+          ctx.note.getAll.setData(getAllNotesQueryInputs, (oldNotes) =>
+            oldNotes ? [note, ...oldNotes] : [note]
+          );
+        },
+        previousState: ctx.note.getAll.getData(
+          getAllNotesQueryInputs
+        ) as Note[],
+      });
+    });
+  };
 
   const handleEditNote = ({
     content,
@@ -167,16 +167,29 @@ export const NoteSlideOver = ({
     id: string;
     renderId: string;
   }) => {
-    if (apiQueue.has(id)) {
-      setApiQueue((draftMap) => {
-        const queue = draftMap.get(renderId);
-        if (queue) {
-          queue.enqueue(({ id, content }) => editNote({ content, id }));
-        }
+    setNoteMutationQueues((draftMap) => {
+      if (!draftMap.has(renderId)) {
+        draftMap.set(renderId, new MutationQueue());
+      }
+
+      void draftMap.get(renderId)?.enqueue({
+        apiCall: async () => {
+          await editNote({ content, id, renderId });
+        },
+        optimisticUpdate: () => {
+          ctx.note.getAll.setData(getAllNotesQueryInputs, (oldNotes) =>
+            oldNotes?.map((oldNote) =>
+              oldNote.renderId === renderId
+                ? { ...oldNote, content: content }
+                : oldNote
+            )
+          );
+        },
+        previousState: ctx.note.getAll.getData(
+          getAllNotesQueryInputs
+        ) as Note[],
       });
-    } else {
-      editNote({ content, id });
-    }
+    });
   };
 
   const onSubmit: SubmitHandler<CreateNoteFormInputs> = ({ content }) => {
@@ -187,7 +200,7 @@ export const NoteSlideOver = ({
         renderId: defaultNote.renderId,
       });
     } else {
-      createNote({ content, renderId: v4() });
+      handleCreateNote({ content });
     }
 
     onClose();

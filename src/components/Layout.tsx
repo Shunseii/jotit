@@ -18,6 +18,9 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { atom, useAtom } from "jotai";
+import { useForm } from "react-hook-form";
+import { useDebouncedEffect } from "@react-hookz/web";
+import { useHotkeys } from "react-hotkeys-hook";
 
 const navigation = [
   { name: "Home", href: "/app", Icon: HomeIcon },
@@ -93,13 +96,37 @@ const NavMenu = () => {
   );
 };
 
+type SearchFormInputs = {
+  search: string;
+};
+
 export const isSidebarOpenAtom = atom(false);
+export const searchInputAtom = atom("");
 
 export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
   // TODO: Implement header hiding when scrolling down and displaying when scrolling up
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useAtom(isSidebarOpenAtom);
+  const [, setSearchInput] = useAtom(searchInputAtom);
+  const { register, watch, setFocus, handleSubmit } =
+    useForm<SearchFormInputs>();
+
+  useDebouncedEffect(
+    () => {
+      setSearchInput(watch("search"));
+    },
+    [watch("search")],
+    200
+  );
+
+  useHotkeys(
+    "ctrl+f,meta+f",
+    () => {
+      setFocus("search", { shouldSelect: true });
+    },
+    { preventDefault: true }
+  );
 
   useLayoutEffect(() => {
     function handleScroll() {
@@ -209,7 +236,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
           </button>
 
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <form className="flex flex-1" action="#" method="GET">
+            <form className="flex flex-1" onSubmit={handleSubmit(() => null)}>
               <label htmlFor="search-field" className="sr-only">
                 Search
               </label>
@@ -219,11 +246,11 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
                   aria-hidden="true"
                 />
                 <input
+                  {...register("search")}
                   id="search-field"
                   className="block h-full w-full border-0 bg-transparent py-0 pl-8 pr-0 text-gray-700 focus:ring-0 dark:text-white sm:text-sm"
                   placeholder="Search..."
                   type="search"
-                  name="search"
                 />
               </div>
             </form>
