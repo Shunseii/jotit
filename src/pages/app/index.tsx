@@ -343,7 +343,8 @@ const AppPage: NextPage = () => {
                         </span>
                       </div>
 
-                      <div className="m-2 line-clamp-[8] whitespace-pre-line text-start font-sans text-sm">
+                      {/* TODO: fix this w-[96%] hack to make break-words work */}
+                      <div className="m-2 line-clamp-[8] w-[96%] whitespace-pre-line break-words text-start font-sans text-sm">
                         {note.content}
                       </div>
                     </motion.button>
