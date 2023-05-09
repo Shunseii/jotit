@@ -120,7 +120,6 @@ const AppPage: NextPage = () => {
   });
 
   const handleDeleteNote = (note: Note) => {
-    console.log("render id for delete: ", note.renderId);
     setNoteMutationQueues((draftMap) => {
       if (!draftMap.has(note.renderId)) {
         draftMap.set(note.renderId, new MutationQueue());

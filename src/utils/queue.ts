@@ -41,16 +41,12 @@ export class MutationQueue {
       const item = this.queue.shift() as MutationQueueItem;
 
       try {
-        console.log("calling api");
         // Make the API call
         await item.apiCall();
       } catch (error) {
-        console.log("clearing");
         this.clear();
       }
     }
-
-    console.log(this.queue);
 
     this.isProcessing = false;
   }
