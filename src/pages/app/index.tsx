@@ -12,7 +12,6 @@ import { XMarkIcon } from "@heroicons/react/20/solid";
 import { toast } from "react-hot-toast";
 import { NotificationListItem } from "~/components/CustomToaster";
 import { atom, useAtom } from "jotai";
-import { type Queue } from "~/utils/queue";
 import { atomWithImmer } from "jotai-immer";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTimeoutEffect } from "@react-hookz/web";
@@ -20,12 +19,13 @@ import { isSidebarOpenAtom, searchInputAtom } from "~/components/Layout";
 import { useHotkeys } from "react-hotkeys-hook";
 import { getAlphanumericCharacters } from "~/utils/hotkeys";
 import { useIsMutating } from "@tanstack/react-query";
-
-type APICall = (note: Note) => void;
+import { MutationQueue } from "~/utils/queue";
 
 export type GetAllNotesInput = Parameters<typeof api.note.getAll.useQuery>[0];
 
-export const apiQueueAtom = atomWithImmer(new Map<string, Queue<APICall>>());
+export const noteMutationQueuesAtom = atomWithImmer(
+  new Map<string, MutationQueue>()
+);
 export const slideoverInputAtom = atom("");
 export const isCapturingInputAtom = atom(true);
 export const isTypeHotkeyEnabledAtom = atom(true);
@@ -36,7 +36,9 @@ const AppPage: NextPage = () => {
   const [isTypeHotkeyEnabled, setIsTypeHotkeyEnabled] = useAtom(
     isTypeHotkeyEnabledAtom
   );
-  const [apiQueue, setApiQueue] = useAtom(apiQueueAtom);
+  const [noteMutationQueues, setNoteMutationQueues] = useAtom(
+    noteMutationQueuesAtom
+  );
   const [, setSlideoverInput] = useAtom(slideoverInputAtom);
   const [isCapturingInput] = useAtom(isCapturingInputAtom);
   const router = useRouter();
@@ -71,8 +73,9 @@ const AppPage: NextPage = () => {
     isLoading: isLoadingNotes,
   } = api.note.getAll.useQuery(getAllNotesQueryInputs);
 
-  const { mutate: undoDelete } = api.note.undoDelete.useMutation({
+  const { mutateAsync: undoDelete } = api.note.undoDelete.useMutation({
     onMutate: () => {
+      // TODO: use correct previous state
       const previousNotes = ctx.note.getAll.getData(getAllNotesQueryInputs);
 
       return { previousNotes };
@@ -86,57 +89,19 @@ const AppPage: NextPage = () => {
 
       toast.error("There was an error deleting your note :(");
       console.error("Error deleting note: ", err);
+
+      void ctx.note.getAll.invalidate();
     },
   });
 
-  const { mutate: deleteNote } = api.note.delete.useMutation({
+  const { mutateAsync: deleteNote } = api.note.delete.useMutation({
     onMutate: async (note) => {
       await ctx.note.getAll.cancel();
 
-      const previousNotes = ctx.note.getAll.getData(getAllNotesQueryInputs);
-
-      ctx.note.getAll.setData(
-        getAllNotesQueryInputs,
-        (oldNotes) =>
-          oldNotes?.filter((oldNote) => oldNote.id !== note.id) ?? []
-      );
-
-      toast.custom((t) => (
-        <NotificationListItem toast={t}>
-          <div className="ml-3 flex w-0 flex-1 justify-between pt-0.5">
-            <p className="line-clamp-3 text-sm font-medium text-gray-900 dark:text-gray-50">
-              Note deleted
-            </p>
-
-            <button
-              type="button"
-              className="ml-3 flex-shrink-0 rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-indigo-500 dark:hover:text-indigo-400 dark:focus:ring-transparent"
-              onClick={() => {
-                const deletedNote = previousNotes?.find(
-                  ({ id }) => id === note.id
-                ) as Note;
-                const queue = apiQueue.get(note.renderId);
-                const fn = queue?.peek();
-
-                ctx.note.getAll.setData(getAllNotesQueryInputs, (oldNotes) =>
-                  oldNotes ? [...oldNotes, deletedNote] : [deletedNote]
-                );
-
-                // TODO: don't use a queue for this
-                if (fn?.toString().includes("deleteNote")) {
-                  queue?.dequeue();
-                } else if (!queue) {
-                  undoDelete({ id: note.id, renderId: note.renderId });
-                }
-
-                toast.dismiss(t.id);
-              }}
-            >
-              Undo
-            </button>
-          </div>
-        </NotificationListItem>
-      ));
+      // TODO: use correct previous state
+      const previousNotes =
+        noteMutationQueues.get(note.renderId)?.previousState ??
+        ctx.note.getAll.getData(getAllNotesQueryInputs);
 
       return { previousNotes };
     },
@@ -149,29 +114,77 @@ const AppPage: NextPage = () => {
 
       toast.error("There was an error deleting your note :(");
       console.error("Error deleting note: ", err);
+
+      void ctx.note.getAll.invalidate();
     },
   });
 
   const handleDeleteNote = (note: Note) => {
-    if (apiQueue.has(note.renderId)) {
-      ctx.note.getAll.setData(
-        getAllNotesQueryInputs,
-        (oldNotes) =>
-          oldNotes?.filter((oldNote) => oldNote.id !== note.id) ?? []
-      );
+    console.log("render id for delete: ", note.renderId);
+    setNoteMutationQueues((draftMap) => {
+      if (!draftMap.has(note.renderId)) {
+        draftMap.set(note.renderId, new MutationQueue());
+      }
 
-      setApiQueue((draftMap) => {
-        const queue = draftMap.get(note.renderId);
-
-        if (queue) {
-          queue.enqueue(({ id, renderId }) => {
-            deleteNote({ id, renderId });
-          });
-        }
+      void draftMap.get(note.renderId)?.enqueue({
+        apiCall: async () => {
+          await deleteNote({ id: note.id, renderId: note.renderId });
+        },
+        optimisticUpdate: () => {
+          ctx.note.getAll.setData(getAllNotesQueryInputs, (oldNotes) =>
+            oldNotes?.filter(({ renderId }) => renderId !== note.renderId)
+          );
+        },
+        previousState: ctx.note.getAll.getData(
+          getAllNotesQueryInputs
+        ) as Note[],
       });
-    } else {
-      deleteNote({ id: note.id, renderId: note.renderId });
-    }
+    });
+
+    toast.custom((t) => (
+      <NotificationListItem toast={t}>
+        <div className="ml-3 flex w-0 flex-1 justify-between pt-0.5">
+          <p className="line-clamp-3 text-sm font-medium text-gray-900 dark:text-gray-50">
+            Note deleted
+          </p>
+
+          <button
+            type="button"
+            className="ml-3 flex-shrink-0 rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:text-indigo-500 dark:hover:text-indigo-400 dark:focus:ring-transparent"
+            onClick={() => {
+              const deletedNote = note;
+
+              setNoteMutationQueues((draftMap) => {
+                if (!draftMap.has(deletedNote.renderId)) {
+                  draftMap.set(deletedNote.renderId, new MutationQueue());
+                }
+
+                void draftMap.get(deletedNote.renderId)?.enqueue({
+                  apiCall: async () => {
+                    await undoDelete({ id: note.id, renderId: note.renderId });
+                  },
+                  optimisticUpdate: () => {
+                    const note = { ...deletedNote };
+
+                    ctx.note.getAll.setData(
+                      getAllNotesQueryInputs,
+                      (oldNotes) => (oldNotes ? [...oldNotes, note] : [note])
+                    );
+                  },
+                  previousState: ctx.note.getAll.getData(
+                    getAllNotesQueryInputs
+                  ) as Note[],
+                });
+              });
+
+              toast.dismiss(t.id);
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      </NotificationListItem>
+    ));
   };
 
   useEffect(() => {
@@ -232,15 +245,23 @@ const AppPage: NextPage = () => {
     }
   }, [isSignedIn, router]);
 
+  const isProcessingAnyQueue = (() => {
+    for (const [, queue] of noteMutationQueues) {
+      if (queue.isProcessingRecords) {
+        return true;
+      }
+    }
+
+    return false;
+  })();
+
   if (
     !isLoaded ||
     isLoadingNotes ||
-    (isFetchingNotes && isMutating) ||
+    (isFetchingNotes && isMutating && isProcessingAnyQueue) ||
     (isFetchingNotes && !notesData)
   )
     return <LoadingPage />;
-
-  console.log(notesData);
 
   return (
     <>

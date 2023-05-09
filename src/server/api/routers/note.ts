@@ -23,17 +23,19 @@ export const noteRouter = createTRPCRouter({
     }),
 
   edit: protectedProcedure
-    .input(z.object({ content: z.string(), id: z.string() }))
+    .input(
+      z.object({ content: z.string(), id: z.string(), renderId: z.string() })
+    )
     .mutation(async ({ input, ctx }) => {
-      const { content, id } = input;
+      const { content, renderId } = input;
 
-      return ctx.prisma.note.update({ where: { id }, data: { content } });
+      return ctx.prisma.note.update({ where: { renderId }, data: { content } });
     }),
 
   delete: protectedProcedure
     .input(z.object({ id: z.string(), renderId: z.string() }))
     .mutation(async ({ input, ctx }) => {
-      const { id } = input;
+      const { renderId } = input;
 
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -43,7 +45,7 @@ export const noteRouter = createTRPCRouter({
       });
 
       return ctx.prisma.note.update({
-        where: { id },
+        where: { renderId },
         data: { deletedAt: new Date() },
       });
     }),
@@ -51,10 +53,10 @@ export const noteRouter = createTRPCRouter({
   undoDelete: protectedProcedure
     .input(z.object({ id: z.string(), renderId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const { id } = input;
+      const { renderId } = input;
 
       return ctx.prisma.note.update({
-        where: { id },
+        where: { renderId },
         data: { deletedAt: null },
       });
     }),
