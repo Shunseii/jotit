@@ -167,7 +167,7 @@ const AppPage: NextPage = () => {
 
                     ctx.note.getAll.setData(
                       getAllNotesQueryInputs,
-                      (oldNotes) => (oldNotes ? [...oldNotes, note] : [note])
+                      (oldNotes) => (oldNotes ? [note, ...oldNotes] : [note])
                     );
                   },
                   previousState: ctx.note.getAll.getData(

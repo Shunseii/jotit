@@ -9,6 +9,9 @@ export const noteRouter = createTRPCRouter({
       const { userId } = ctx.auth;
 
       return ctx.prisma.note.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
         where: { userId, AND: [{ content: { search: input?.searchKeyword } }] },
       });
     }),

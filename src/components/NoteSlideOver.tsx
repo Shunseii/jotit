@@ -148,7 +148,7 @@ export const NoteSlideOver = ({
           const note = { ...newNote };
 
           ctx.note.getAll.setData(getAllNotesQueryInputs, (oldNotes) =>
-            oldNotes ? [...oldNotes, note] : [note]
+            oldNotes ? [note, ...oldNotes] : [note]
           );
         },
         previousState: ctx.note.getAll.getData(
