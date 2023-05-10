@@ -6,6 +6,7 @@ import {
   HomeIcon,
 } from "@heroicons/react/24/outline";
 import { Bars3Icon, MagnifyingGlassIcon } from "@heroicons/react/20/solid";
+import { Key } from "ts-key-enum";
 import {
   type FC,
   Fragment,
@@ -97,7 +98,7 @@ const NavMenu = () => {
 };
 
 type SearchFormInputs = {
-  search: string;
+  searchKeyword: string;
 };
 
 export const isSidebarOpenAtom = atom(false);
@@ -114,18 +115,26 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
 
   useDebouncedEffect(
     () => {
-      setSearchInput(watch("search"));
+      setSearchInput(watch("searchKeyword"));
     },
-    [watch("search")],
+    [watch("searchKeyword")],
     200
   );
 
   useHotkeys(
     "ctrl+f,meta+f",
     () => {
-      setFocus("search", { shouldSelect: true });
+      setFocus("searchKeyword", { shouldSelect: true });
     },
     { preventDefault: true }
+  );
+
+  useHotkeys(
+    Key.Escape,
+    () => {
+      (document.activeElement as HTMLElement)?.blur();
+    },
+    { preventDefault: true, enableOnFormTags: ["input"] }
   );
 
   useLayoutEffect(() => {
@@ -246,7 +255,7 @@ export const Layout: FC<{ children: ReactNode }> = ({ children }) => {
                   aria-hidden="true"
                 />
                 <input
-                  {...register("search")}
+                  {...register("searchKeyword")}
                   id="search-field"
                   className="block h-full w-full border-0 bg-transparent py-0 pl-8 pr-0 text-gray-700 focus:ring-0 dark:text-white sm:text-sm"
                   placeholder="Search..."
