@@ -235,6 +235,7 @@ const AppPage: NextPage = () => {
     if (!isCreateNoteModalOpen) {
       reset();
       setSlideoverInput("");
+      setSelectedNote(null);
     }
   }, [isCreateNoteModalOpen, setSlideoverInput, reset]);
 
