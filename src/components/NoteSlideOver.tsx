@@ -2,7 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import { type Note } from "@prisma/client";
 import dayjs from "dayjs";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useMemo } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { api } from "~/utils/api";
@@ -19,6 +19,7 @@ import {
 } from "~/pages/app";
 import { searchInputAtom } from "./Layout";
 import { MutationQueue } from "~/utils/queue";
+import { getRandomPrompt } from "~/utils/prompt";
 
 type CreateNoteFormInputs = {
   content: string;
@@ -215,6 +216,8 @@ export const NoteSlideOver = ({
     { preventDefault: true, enableOnFormTags: ["textarea"] }
   );
 
+  const randomPrompt = getRandomPrompt();
+
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -270,7 +273,7 @@ export const NoteSlideOver = ({
                         </div>
                         <div className="mt-1">
                           <p className="text-sm text-gray-200">
-                            {`Write a list of three things you're grateful for today and explain why they're important to you.`}
+                            {randomPrompt?.prompt}
                           </p>
                         </div>
                       </div>
@@ -287,6 +290,7 @@ export const NoteSlideOver = ({
                           <textarea
                             {...register("content")}
                             autoFocus
+                            placeholder={randomPrompt?.placeholder}
                             rows={15}
                             tabIndex={1}
                             id="content"
