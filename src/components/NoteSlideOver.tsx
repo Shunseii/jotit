@@ -2,7 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import { type Note } from "@prisma/client";
 import dayjs from "dayjs";
-import { Fragment, useEffect, useMemo } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { api } from "~/utils/api";
@@ -19,7 +19,7 @@ import {
 } from "~/pages/app";
 import { searchInputAtom } from "./Layout";
 import { MutationQueue } from "~/utils/queue";
-import { getRandomPrompt } from "~/utils/prompt";
+import { type Prompt, getRandomPrompt } from "~/utils/prompt";
 
 type CreateNoteFormInputs = {
   content: string;
@@ -39,6 +39,7 @@ export const NoteSlideOver = ({
   const [, setIsCapturingInput] = useAtom(isCapturingInputAtom);
   const [, setNoteMutationQueues] = useAtom(noteMutationQueuesAtom);
   const { user } = useUser();
+  const [randomPrompt, setRandomPrompt] = useState<Prompt>();
   const [, setIsTypeHotkeyEnabled] = useAtom(isTypeHotkeyEnabledAtom);
   const ctx = api.useContext();
   const {
@@ -216,8 +217,11 @@ export const NoteSlideOver = ({
     { preventDefault: true, enableOnFormTags: ["textarea"] }
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const randomPrompt = useMemo(() => getRandomPrompt(), [isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      setRandomPrompt(getRandomPrompt());
+    }
+  }, [isOpen]);
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>

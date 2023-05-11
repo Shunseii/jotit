@@ -1,3 +1,8 @@
+export type Prompt = {
+  prompt: string;
+  placeholder: string;
+};
+
 const prompts = [
   {
     prompt:
@@ -57,7 +62,7 @@ const prompts = [
     placeholder:
       "Accomplished task: \n\nHow you completed it: \n- Step 1: \n- Step 2: \n- Step 3:",
   },
-];
+] as Prompt[];
 
 export const getRandomPrompt = () => {
   const rand = Math.floor(Math.random() * prompts.length);
