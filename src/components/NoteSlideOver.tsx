@@ -2,7 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import { type Note } from "@prisma/client";
 import dayjs from "dayjs";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { api } from "~/utils/api";
