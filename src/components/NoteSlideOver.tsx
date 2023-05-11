@@ -2,7 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import { type Note } from "@prisma/client";
 import dayjs from "dayjs";
-import { Fragment, useEffect } from "react";
+import { Fragment, useEffect, useMemo } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { api } from "~/utils/api";
@@ -216,7 +216,8 @@ export const NoteSlideOver = ({
     { preventDefault: true, enableOnFormTags: ["textarea"] }
   );
 
-  const randomPrompt = getRandomPrompt();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const randomPrompt = useMemo(() => getRandomPrompt(), [isOpen]);
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
