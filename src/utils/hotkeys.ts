@@ -18,15 +18,15 @@ export const getAlphanumericCharacters = (
     throw new Error(`Unsupported locale: ${locale}`);
   }
 
-  let characters = ranges.map((range) => {
+  let characters = ranges.reduce((acc, range) => {
     const [start, end] = range.split("-") as [string, string];
     const charCodes = Array.from(
       { length: end.charCodeAt(0) - start.charCodeAt(0) + 1 },
       (_, i) => String.fromCharCode(start.charCodeAt(0) + i)
     );
 
-    return charCodes;
-  });
+    return [...acc, ...charCodes];
+  }, [] as string[]);
 
   if (locale === "en-US") {
     const lowerCaseRange = "a-z";
@@ -37,7 +37,7 @@ export const getAlphanumericCharacters = (
       (_, i) => "shift+" + String.fromCharCode(start.charCodeAt(0) + i)
     );
 
-    characters = [...characters, upperCaseChars];
+    characters = [...characters, ...upperCaseChars];
   }
 
   return characters;
