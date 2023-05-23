@@ -67,5 +67,5 @@ const prompts = [
 export const getRandomPrompt = () => {
   const rand = Math.floor(Math.random() * prompts.length);
 
-  return prompts[rand];
+  return prompts[rand] as Prompt;
 };
