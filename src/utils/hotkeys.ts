@@ -18,17 +18,27 @@ export const getAlphanumericCharacters = (
     throw new Error(`Unsupported locale: ${locale}`);
   }
 
-  const characters = ranges
-    .map((range) => {
-      const [start, end] = range.split("-") as [string, string];
-      const charCodes = Array.from(
-        { length: end.charCodeAt(0) - start.charCodeAt(0) + 1 },
-        (_, i) => String.fromCharCode(start.charCodeAt(0) + i)
-      );
+  let characters = ranges.map((range) => {
+    const [start, end] = range.split("-") as [string, string];
+    const charCodes = Array.from(
+      { length: end.charCodeAt(0) - start.charCodeAt(0) + 1 },
+      (_, i) => String.fromCharCode(start.charCodeAt(0) + i)
+    );
 
-      return charCodes.join(",");
-    })
-    .join(",");
+    return charCodes;
+  });
+
+  if (locale === "en-US") {
+    const lowerCaseRange = "a-z";
+    const [start, end] = lowerCaseRange.split("-") as [string, string];
+
+    const upperCaseChars = Array.from(
+      { length: end.charCodeAt(0) - start.charCodeAt(0) + 1 },
+      (_, i) => "shift+" + String.fromCharCode(start.charCodeAt(0) + i)
+    );
+
+    characters = [...characters, upperCaseChars];
+  }
 
   return characters;
 };
