@@ -20,6 +20,7 @@ import {
 import { searchInputAtom } from "./Layout";
 import { MutationQueue } from "~/utils/queue";
 import { type Prompt, getRandomPrompt } from "~/utils/prompt";
+import { Key } from "ts-key-enum";
 
 type CreateNoteFormInputs = {
   content: string;
@@ -208,6 +209,12 @@ export const NoteSlideOver = ({
     onClose();
     reset();
   };
+
+  useHotkeys(Key.Escape, () => {
+    if (isOpen) {
+      onClose();
+    }
+  });
 
   useHotkeys(
     "meta+s, ctrl+s",
