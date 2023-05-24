@@ -17,22 +17,30 @@ export const noteRouter = createTRPCRouter({
     }),
 
   create: protectedProcedure
-    .input(z.object({ content: z.string(), renderId: z.string() }))
+    .input(
+      z.object({
+        content: z.string(),
+        renderId: z.string(),
+        title: z.string().optional(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
-      const { content, renderId } = input;
+      const { content, renderId, title } = input;
       const { userId } = ctx.auth;
 
-      return ctx.prisma.note.create({ data: { userId, content, renderId } });
+      return ctx.prisma.note.create({
+        data: { userId, content, renderId, title },
+      });
     }),
 
   edit: protectedProcedure
     .input(
-      z.object({ content: z.string(), id: z.string(), renderId: z.string() })
+      z.object({ content: z.string(), id: z.string(), renderId: z.string() , title: z.string().optional()})
     )
     .mutation(async ({ input, ctx }) => {
-      const { content, renderId } = input;
+      const { content, renderId, title } = input;
 
-      return ctx.prisma.note.update({ where: { renderId }, data: { content } });
+      return ctx.prisma.note.update({ where: { renderId }, data: { content, title  } });
     }),
 
   delete: protectedProcedure

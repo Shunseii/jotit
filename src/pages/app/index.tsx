@@ -316,9 +316,9 @@ const AppPage: NextPage = () => {
                       }}
                       className="flex flex-col rounded-lg border border-yellow-400 bg-white text-start dark:border-yellow-200 dark:bg-gray-900 dark:text-white"
                     >
-                      <div className="flex w-full items-center justify-between rounded-t bg-yellow-400 px-2 py-1 dark:bg-yellow-200">
-                        <h2 className="font-sans text-sm font-semibold text-yellow-700 dark:text-yellow-800">
-                          {/* TODO: Title here */}
+                      <div className="flex w-full items-start justify-between rounded-t bg-yellow-400 px-2 py-1 dark:bg-yellow-200">
+                        <h2 className="line-clamp-2 font-sans text-sm font-semibold text-yellow-700 dark:text-yellow-800">
+                          {note.title ?? ""}
                         </h2>
 
                         <span

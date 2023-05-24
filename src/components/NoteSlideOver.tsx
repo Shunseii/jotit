@@ -2,7 +2,7 @@ import { useUser } from "@clerk/nextjs";
 import { Dialog, Transition } from "@headlessui/react";
 import { type Note } from "@prisma/client";
 import dayjs from "dayjs";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { type SubmitHandler, useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { api } from "~/utils/api";
@@ -23,6 +23,7 @@ import { type Prompt, getRandomPrompt } from "~/utils/prompt";
 import { Key } from "ts-key-enum";
 
 type CreateNoteFormInputs = {
+  title: string;
   content: string;
 };
 
@@ -50,9 +51,14 @@ export const NoteSlideOver = ({
     setValue,
     formState: { isDirty, isSubmitting },
   } = useForm<CreateNoteFormInputs>({
-    defaultValues: { content: slideoverInput ?? defaultNote?.content ?? "" },
+    defaultValues: {
+      content: defaultNote?.content ?? "",
+      title: defaultNote?.title ?? "",
+    },
   });
 
+  const contentInputRef = useRef<HTMLTextAreaElement | null>(null);
+  const { ref, ...registeredContent } = register("content");
   const isTextareaFocused = isDirty || isSubmitting;
 
   useEffect(() => {
@@ -61,6 +67,7 @@ export const NoteSlideOver = ({
 
   useEffect(() => {
     setValue("content", defaultNote?.content ?? "");
+    setValue("title", defaultNote?.title ?? "");
   }, [defaultNote, setValue]);
 
   useEffect(() => {
@@ -94,8 +101,8 @@ export const NoteSlideOver = ({
         context?.previousNotes ?? []
       );
 
-      toast.error("There was an error creating your note :(");
-      console.error("Error creating note: ", err);
+      toast.error("There was an error editing your note :(");
+      console.error("Error editing note: ", err);
 
       void ctx.note.getAll.invalidate();
     },
@@ -124,10 +131,17 @@ export const NoteSlideOver = ({
     },
   });
 
-  const handleCreateNote = ({ content }: { content: string }) => {
+  const handleCreateNote = ({
+    content,
+    title,
+  }: {
+    content: string;
+    title?: string;
+  }) => {
     const newNote: Note = {
       userId: user?.id ?? "",
-      content: content,
+      content,
+      title: title ?? null,
       createdAt: dayjs().toDate(),
       updatedAt: dayjs().toDate(),
       renderId: v4(),
@@ -144,6 +158,7 @@ export const NoteSlideOver = ({
         apiCall: async () => {
           await createNote({
             content: newNote.content,
+            title: newNote.title ?? undefined,
             renderId: newNote.renderId,
           });
         },
@@ -163,10 +178,12 @@ export const NoteSlideOver = ({
 
   const handleEditNote = ({
     content,
+    title,
     id,
     renderId,
   }: {
     content: string;
+    title?: string;
     id: string;
     renderId: string;
   }) => {
@@ -177,13 +194,17 @@ export const NoteSlideOver = ({
 
       void draftMap.get(renderId)?.enqueue({
         apiCall: async () => {
-          await editNote({ content, id, renderId });
+          await editNote({ content, id, renderId, title });
         },
         optimisticUpdate: () => {
           ctx.note.getAll.setData(getAllNotesQueryInputs, (oldNotes) =>
             oldNotes?.map((oldNote) =>
               oldNote.renderId === renderId
-                ? { ...oldNote, content: content }
+                ? {
+                    ...oldNote,
+                    content: content,
+                    title: title !== undefined ? title : oldNote.title,
+                  }
                 : oldNote
             )
           );
@@ -195,15 +216,19 @@ export const NoteSlideOver = ({
     });
   };
 
-  const onSubmit: SubmitHandler<CreateNoteFormInputs> = ({ content }) => {
+  const onSubmit: SubmitHandler<CreateNoteFormInputs> = ({
+    content,
+    title,
+  }) => {
     if (defaultNote) {
       handleEditNote({
         content,
+        title,
         id: defaultNote.id,
         renderId: defaultNote.renderId,
       });
     } else {
-      handleCreateNote({ content });
+      handleCreateNote({ content, title });
     }
 
     onClose();
@@ -221,7 +246,7 @@ export const NoteSlideOver = ({
     () => {
       if (isOpen) void handleSubmit(onSubmit)();
     },
-    { preventDefault: true, enableOnFormTags: ["textarea"] }
+    { preventDefault: true, enableOnFormTags: ["textarea", "input"] }
   );
 
   useEffect(() => {
@@ -232,7 +257,12 @@ export const NoteSlideOver = ({
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog
+        as="div"
+        className="relative z-50"
+        onClose={onClose}
+        initialFocus={contentInputRef}
+      >
         <Transition.Child
           as={Fragment}
           enter="ease-in-out duration-500"
@@ -290,24 +320,47 @@ export const NoteSlideOver = ({
                         </div>
                       </div>
 
-                      <div className="relative mt-6 flex-1 px-4 sm:px-6">
-                        <label
-                          htmlFor="content"
-                          className="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-50"
-                        >
-                          Write your note
-                        </label>
+                      <div className="relative mt-6 flex flex-1 flex-col gap-y-8 px-4 sm:px-6">
+                        <div>
+                          <label
+                            htmlFor="title"
+                            className="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-50"
+                          >
+                            Add a title
+                          </label>
 
-                        <div className="mt-2">
-                          <textarea
-                            {...register("content")}
-                            autoFocus
-                            placeholder={randomPrompt?.placeholder}
-                            rows={15}
-                            tabIndex={1}
-                            id="content"
-                            className="block w-full whitespace-pre-line rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-400 sm:text-sm sm:leading-6"
-                          />
+                          <div className="mt-2">
+                            <textarea
+                              {...register("title")}
+                              rows={2}
+                              id="title"
+                              className="block w-full whitespace-pre-line rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-400 sm:text-sm sm:leading-6"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label
+                            htmlFor="content"
+                            className="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-50"
+                          >
+                            Write your note
+                          </label>
+
+                          <div className="mt-2">
+                            <textarea
+                              {...registeredContent}
+                              ref={(e) => {
+                                ref(e);
+                                contentInputRef.current = e;
+                              }}
+                              autoFocus
+                              placeholder={randomPrompt?.placeholder}
+                              rows={15}
+                              id="content"
+                              className="block w-full whitespace-pre-line rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:bg-white/5 dark:text-white dark:ring-white/10 dark:placeholder:text-gray-400 sm:text-sm sm:leading-6"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
