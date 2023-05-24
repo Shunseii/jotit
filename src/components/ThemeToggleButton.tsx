@@ -20,6 +20,7 @@ export const ThemeToggleButton = () => {
       className="flex h-6 w-6 items-center justify-center rounded-md transition hover:bg-zinc-900/5 dark:hover:bg-white/5"
       aria-label="Toggle dark mode"
       onClick={() => {
+// TODO: handle case where this is "system" theme
         setTheme(theme === "dark" ? "light" : "dark");
       }}
     >
