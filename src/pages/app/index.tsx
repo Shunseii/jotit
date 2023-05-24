@@ -8,18 +8,18 @@ import { api } from "~/utils/api";
 import { DocumentTextIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { type Note } from "@prisma/client";
 import { useSwipe } from "~/hooks/useSwipe";
-import { XMarkIcon } from "@heroicons/react/20/solid";
 import { toast } from "react-hot-toast";
 import { NotificationListItem } from "~/components/CustomToaster";
 import { atom, useAtom } from "jotai";
 import { atomWithImmer } from "jotai-immer";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useTimeoutEffect } from "@react-hookz/web";
 import { isSidebarOpenAtom, searchInputAtom } from "~/components/Layout";
 import { useHotkeys } from "react-hotkeys-hook";
 import { getAlphanumericCharacters } from "~/utils/hotkeys";
 import { useIsMutating } from "@tanstack/react-query";
 import { MutationQueue } from "~/utils/queue";
+import { NoteDisplay } from "~/components/NoteDisplay";
 
 export type GetAllNotesInput = Parameters<typeof api.note.getAll.useQuery>[0];
 
@@ -302,53 +302,12 @@ const AppPage: NextPage = () => {
               <div className="grid grid-cols-fill-xs gap-3">
                 <AnimatePresence>
                   {notesData.map((note) => (
-                    <motion.button
+                    <NoteDisplay
                       key={note.renderId}
-                      layout="position"
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
-                      transition={{ duration: 0.3 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-
-                        setSelectedNote(note);
-                      }}
-                      className="flex flex-col rounded-lg border border-yellow-400 bg-white text-start dark:border-yellow-200 dark:bg-gray-900 dark:text-white"
-                    >
-                      <div className="flex w-full items-start justify-between rounded-t bg-yellow-400 px-2 py-1 dark:bg-yellow-200">
-                        <h2 className="line-clamp-2 font-sans text-sm font-semibold text-yellow-700 dark:text-yellow-800">
-                          {note.title ?? ""}
-                        </h2>
-
-                        <span
-                          title="Delete this note"
-                          className="cursor-pointer"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            e.stopPropagation();
-
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-
-                              handleDeleteNote(note);
-                            }
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-
-                            handleDeleteNote(note);
-                          }}
-                        >
-                          <XMarkIcon className="h-5 w-5 fill-yellow-700 dark:text-yellow-800" />
-                        </span>
-                      </div>
-
-                      {/* TODO: fix this w-[96%] hack to make break-words work */}
-                      <div className="m-2 line-clamp-[8] w-[96%] whitespace-pre-line break-words text-start font-sans text-sm">
-                        {note.content}
-                      </div>
-                    </motion.button>
+                      {...note}
+                      onDeleteNote={() => handleDeleteNote(note)}
+                      onSelectNote={() => setSelectedNote(note)}
+                    />
                   ))}
                 </AnimatePresence>
               </div>
