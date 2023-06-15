@@ -1,28 +1,11 @@
-# Create T3 App
+# Jot It
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+Jot It is a note-taking web app focused on simplicity and efficiency. It doesn't try to accommodate every single use case for note taking, rather it focuses on just one thing: jotting down short-lived notes quickly. 
 
-## What's next? How do I make an app with this?
+Through specializing in this use case, Jot It is performant and efficient to use through its optimistic updates on every action and keyboard shortcuts that let you just start typing instead of fiddling with typography or structure. Moreover, this allows Jot It to be used effectively with other note-taking apps to optimize your note-taking workflow by using the right tool for the right job. Need to take rough notes during a meeting? Fire up Jot It and start typing in less than 2 keystrokes. Writing up formal notes as you go through a textbook? Grab a markdowm-based note-taking app to organize the structure your notes perfectly.
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+To maximize efficiency, my goal is to allow this to be used without the need to log in with the core functionality. 
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+# Tech Stack
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
-
-## Learn More
-
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
-
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
-
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
-
-## How do I deploy this?
-
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+This was built using the awesome [T3 Stack](https://create.t3.gg/) and uses [Clerk](https://clerk.com/) for authentication.
