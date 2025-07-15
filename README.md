@@ -1,4 +1,6 @@
-# Jot It
+# Jot It (Deprecated)
+
+Deprecation Notice: I stopped using this application since I shifted over to Obsidian for my note-taking needs, whether it's short-lived notes or otherwise. The production app has been taken down.
 
 Jot It is a note-taking web app focused on simplicity and efficiency. It doesn't try to accommodate every single use case for note taking, rather it focuses on just one thing: jotting down short-lived notes quickly. 
 
